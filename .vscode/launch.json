@@ -1,0 +1,19 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Raznor",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build:app",
+      "program": "${workspaceFolder}/Raznor.App/bin/Debug/netcoreapp3.1/Raznor.App.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    }
+  ]
+}

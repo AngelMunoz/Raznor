@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Database.fs" />
+    <Compile Include="CollectionSettings.fs" />
+    <Compile Include="MusicCollections.fs" />
+    <Compile Include="PlayerLib.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp" Version="3.4.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.8.1" />
+    <PackageReference Include="LiteDB" Version="4.1.4" />
+    <PackageReference Include="LiteDB.FSharp" Version="2.14.0" />
+  </ItemGroup>
+
+</Project>
