@@ -4,6 +4,7 @@ open Avalonia.FuncUI.Components
 open Avalonia.FuncUI.Types
 open LiteDB
 open System.IO
+open Avalonia.Threading
 
 module Content =
     open System
@@ -15,71 +16,81 @@ module Content =
     type State =
         { musicCollections: Types.MusicCollection list
           selectedCollection: Types.MusicCollection option
-          selectedCollectionSongs: Types.SongRecord list option }
+          selectedCollectionSongs: Types.SongRecord list option
+          collectionsLoading: bool }
 
     type ExternalMsg = PlaySong of Types.SongRecord
 
     type Msg =
         | AddDefaultCollections
+        | SetCollectionsLoading of bool
         | SetSelectedCollection of Types.MusicCollection option
         | SetSelectedCollectionSongs of Types.SongRecord list option
+        | AfterDefaultCollections of Types.MusicCollection list
         | PlaySong of Types.SongRecord
 
     let init =
         let collections = MusicCollections.getMusicCollections
         { musicCollections = collections
           selectedCollection = None
-          selectedCollectionSongs = None }
+          selectedCollectionSongs = None
+          collectionsLoading = false }
 
-    let getpathsAndCollections (collections: Types.MusicCollection list) (collection: Types.CollectionSettings) =
-        let col = collections |> List.find (fun col -> col.name = collection.name)
+    let private getPathsAndCollections (targets: Types.MusicCollection list) (targetSettings: Types.CollectionSettings) =
+        let col = targets |> List.find (fun col -> col.name = targetSettings.name)
+        let di = DirectoryInfo(targetSettings.path)
 
-        let mp3 =
-            Directory.EnumerateFiles(collection.path, "*.mp3", SearchOption.AllDirectories)
-            |> Seq.toList
-            |> List.map (fun path -> File.OpenRead(path), path)
-            |> List.map (fun (filestr, path) -> filestr.Name, path)
+        let getFiles (extension: string) =
+            let getFileAndPath (file: FileInfo) = file.Name, file.FullName
+            di.GetFiles(extension, SearchOption.AllDirectories) |> Array.Parallel.map getFileAndPath
 
-        let wav =
-            Directory.EnumerateFiles(collection.path, "*.wav", SearchOption.AllDirectories)
-            |> Seq.toList
-            |> List.map (fun path -> File.OpenRead(path), path)
-            |> List.map (fun (filestr, path) -> filestr.Name, path)
+        let files =
+            [| getFiles "*.mp3"
+               getFiles "*.wav"
+               getFiles "*.mid" |]
+            |> Array.Parallel.collect (fun list -> list)
 
-        let mid =
-            Directory.EnumerateFiles(collection.path, "*.mid", SearchOption.AllDirectories)
-            |> Seq.toList
-            |> List.map (fun path -> File.OpenRead(path), path)
-            |> List.map (fun (filestr, path) -> filestr.Name, path)
+        col.id, files
 
-        col, mp3 @ wav @ mid
 
-    let createSongsFromCollection row =
+    let private createSongsFromCollection (row: ObjectId * (string * string) []) =
         let collection, items = row
+
+        let songRecord (name, path): Types.SongRecord =
+            { id = ObjectId.NewObjectId()
+              name = name
+              path = path
+              createdAt = DateTime.Now
+              isIn = [ collection ] }
         items
-        |> List.map (fun (name, path) ->
-            let song: Types.SongRecord =
-                { id = ObjectId.NewObjectId()
-                  name = name
-                  path = path
-                  createdAt = DateTime.Now
-                  isIn = [] }
-            MusicCollections.addSongToCollection song collection)
+        |> Array.Parallel.map songRecord
+        |> MusicCollections.addNewSongBatch
+
+    let musicCollections =
+        CollectionSettings.getDefaultPaths
+        |> Array.Parallel.map MusicCollections.getPreMusiColFromPath
+        |> MusicCollections.createMusicCollections
+
+    let createSongs paths =
+        Dispatcher.UIThread.InvokeAsync(fun _ ->
+            paths
+            |> Array.Parallel.map (fun collection -> getPathsAndCollections musicCollections collection)
+            |> Array.Parallel.map createSongsFromCollection)
 
     let update msg state =
         match msg with
+        | SetCollectionsLoading isLoading -> { state with collectionsLoading = isLoading }, Cmd.none, None
         | AddDefaultCollections ->
-            let collections =
-                CollectionSettings.getDefaultPaths
-                |> List.map MusicCollections.getPreMusiColFromPath
-                |> MusicCollections.createMusicCollections
-
-            CollectionSettings.getDefaultPaths
-            |> List.map (fun collection -> getpathsAndCollections collections collection)
-            |> List.map createSongsFromCollection
-            |> ignore
-
-            { state with musicCollections = collections }, Cmd.none, None
+            let cmd =
+                Cmd.batch
+                    [ Cmd.ofMsg (SetCollectionsLoading true)
+                      Cmd.OfTask.perform createSongs (CollectionSettings.getDefaultPaths)
+                          (fun _ -> AfterDefaultCollections(musicCollections)) ]
+            state, cmd, None
+        | AfterDefaultCollections collections ->
+            { state with
+                  musicCollections = collections
+                  collectionsLoading = false }, Cmd.none, None
         | SetSelectedCollection collection ->
             let songs =
                 match collection with
@@ -117,8 +128,8 @@ module Content =
                     Button.create
                         [ Button.tip "My Music and OneDrive Music Folder"
                           Button.content "Add default collections"
-                          Button.onClick (fun _ -> dispatch AddDefaultCollections) ]
-                    Button.create [ Button.content "Select From Folder" ] ] ]
+                          Button.isEnabled (not state.collectionsLoading)
+                          Button.onClick (fun _ -> dispatch AddDefaultCollections) ] ] ]
 
     let private collectionList (state: State) (dispatch: Msg -> unit) =
         match state.musicCollections |> List.isEmpty with
@@ -128,7 +139,7 @@ module Content =
     let private songTemplate (song: Types.SongRecord) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.spacing 8.0
-              StackPanel.onDoubleTapped(fun _ -> dispatch (PlaySong song))
+              StackPanel.onDoubleTapped (fun _ -> dispatch (PlaySong song))
               StackPanel.children [ TextBlock.create [ TextBlock.text song.name ] ] ]
 
     let private songRecordList (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
