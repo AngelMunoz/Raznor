@@ -6,15 +6,8 @@ module CollectionSettings =
     open Types
     open LiteDB
 
-    let private colSettings (db: LiteDatabase) =
-        let col = db.GetCollection<Types.CollectionSettings>()
-        col.EnsureIndex "path" |> ignore
-        col.EnsureIndex "name" |> ignore
-        col
-
     let createBasicPaths =
-        use db = Database.getDatabase Database.dbpath
-        let col = colSettings db
+        let col = Database.getCollectionSettings()
 
         let collections: CollectionSettings list =
             let onedrivepath = Environment.GetEnvironmentVariable("OneDriveConsumer")
@@ -28,16 +21,15 @@ module CollectionSettings =
                           name = "One Drive Music"
                           path = onedrivemusic
                           createdAt = DateTime.Now } ]
-        col.Insert(collections) |> ignore
-        col.Find(Query.All(1)) |> Seq.toList
+        col.Value.Insert(collections) |> ignore
+        col.Value.Find(Query.All(1)) |> Seq.toArray
 
     let getDefaultPaths =
-        use db = Database.getDatabase Database.dbpath
-        let col = colSettings db
-        let found = col.Find(Query.All(1)) |> Seq.toList
+        let col = Database.getCollectionSettings()
+        let found = col.Value.Find(Query.All(1)) |> Seq.toArray
 
         let paths =
-            match found |> List.isEmpty with
+            match found |> Array.isEmpty with
             | true -> createBasicPaths
             | false -> found
         paths
