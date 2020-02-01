@@ -22,14 +22,14 @@ module CollectionSettings =
                           path = onedrivemusic
                           createdAt = DateTime.Now } ]
         col.Value.Insert(collections) |> ignore
-        col.Value.Find(Query.All(1)) |> Seq.toArray
+        col.Value.Find(Query.All(1)) |> Seq.toList
 
     let getDefaultPaths =
         let col = Database.getCollectionSettings()
-        let found = col.Value.Find(Query.All(1)) |> Seq.toArray
+        let found = col.Value.Find(Query.All(1)) |> Seq.toList
 
         let paths =
-            match found |> Array.isEmpty with
+            match found |> List.isEmpty with
             | true -> createBasicPaths
             | false -> found
         paths

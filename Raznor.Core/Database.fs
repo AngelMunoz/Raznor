@@ -37,8 +37,8 @@ module Database =
         Lazy<_>.Create
                 (fun _ ->
                     let col = db.Value.GetCollection<Types.CollectionSettings>()
-                    col.EnsureIndex "path" |> ignore
-                    col.EnsureIndex "name" |> ignore
+                    col.EnsureIndex("name", true) |> ignore
+                    col.EnsureIndex("path", true) |> ignore
                     col)
 
     let private songcol =

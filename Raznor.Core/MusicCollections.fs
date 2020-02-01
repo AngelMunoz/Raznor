@@ -1,10 +1,8 @@
 namespace Raznor.Core
 
-
-
 module MusicCollections =
     open LiteDB
-    open System 
+    open System
     open System.IO
     open Types
 
@@ -15,9 +13,8 @@ module MusicCollections =
 
     let createMusicCollections (cols: Types.MusicCollection seq) =
         let col = Database.getMusicCollections()
-        let finalcols = 
-          cols 
-          |> Seq.filter(fun musicol -> not (col.Value.Exists(fun existing -> existing.name = musicol.name)))
+        let finalcols =
+            cols |> Seq.filter (fun musicol -> not (col.Value.Exists(fun existing -> existing.name = musicol.name)))
         col.Value.Insert(finalcols) |> ignore
         col.Value.Find(Query.All(1)) |> Seq.toList
 
@@ -37,38 +34,54 @@ module MusicCollections =
     let getAllSongs =
         let col = Database.getSongs()
         col.Value.Find(Query.All(1)) |> Seq.toList
-    
-    let getPreMusiColFromPath (settings: Types.CollectionSettings): Types.MusicCollection =
-      { id = ObjectId.NewObjectId()
-        name = settings.name
-        createdAt = DateTime.Now
-        updatedAt = DateTime.Now }
 
-    let getPathsAndCollections (targets: Types.MusicCollection list) (targetSettings: Types.CollectionSettings) =
-      let col = targets |> List.find (fun col -> col.name = targetSettings.name)
-      let di = DirectoryInfo(targetSettings.path)
+    let private getPreMusiColFromPath (settings: Types.CollectionSettings): Types.MusicCollection =
+        { id = ObjectId.NewObjectId()
+          name = settings.name
+          createdAt = DateTime.Now
+          updatedAt = DateTime.Now }
 
-      let getFiles (extension: string) =
-          let getFileAndPath (file: FileInfo) = file.Name, file.FullName
-          di.GetFiles(extension, SearchOption.AllDirectories) |> Array.Parallel.map getFileAndPath
+    let private getPathsAndCollections (targets: Types.MusicCollection list) (targetSettings: Types.CollectionSettings) =
+        let col = targets |> List.find (fun col -> col.name = targetSettings.name)
+        let di = DirectoryInfo(targetSettings.path)
 
-      let files =
-          [| getFiles "*.mp3"
-             getFiles "*.wav"
-             getFiles "*.mid" |]
-          |> Array.Parallel.collect (fun list -> list)
+        let getFiles (extension: string) =
+            let getFileAndPath (file: FileInfo) = file.Name, file.FullName
+            di.GetFiles(extension, SearchOption.AllDirectories) |> Array.Parallel.map getFileAndPath
 
-      col.id, files
+        let files =
+            [| getFiles "*.mp3"
+               getFiles "*.wav"
+               getFiles "*.mid" |]
+            |> Array.Parallel.collect (fun list -> list)
 
-    let createSongsFromCollection (row: ObjectId * (string * string) []) =
-      let collection, items = row
+        col.id, files
 
-      let songRecord (name, path): Types.SongRecord =
-          { id = ObjectId.NewObjectId()
-            name = name
-            path = path
-            createdAt = DateTime.Now
-            belongsTo = collection }
-      items
-      |> Array.Parallel.map songRecord
-      |> addNewSongBatch
+    let private createSongsFromCollection (row: ObjectId * (string * string) []) =
+        let collection, items = row
+
+        let songRecord (name, path): Types.SongRecord =
+            { id = ObjectId.NewObjectId()
+              name = name
+              path = path
+              createdAt = DateTime.Now
+              belongsTo = collection }
+        items
+        |> Array.Parallel.map songRecord
+        |> addNewSongBatch
+
+
+    let defaultMusicCollections =
+        let collections = getMusicCollections
+        let emptylist = collections |> List.isEmpty
+        match emptylist with
+        | true ->
+            CollectionSettings.getDefaultPaths
+            |> List.map getPreMusiColFromPath
+            |> createMusicCollections
+        | false -> collections
+
+    let createDefaultSongs (paths: Types.CollectionSettings list) =
+        paths
+        |> List.map (fun collection -> getPathsAndCollections defaultMusicCollections collection)
+        |> List.map createSongsFromCollection

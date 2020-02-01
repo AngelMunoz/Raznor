@@ -6,8 +6,6 @@ module Content =
     open Avalonia.FuncUI.DSL
     open Avalonia.FuncUI.Types
     open Elmish
-    open LiteDB
-    open System
     open Raznor.Core
 
     type State =
@@ -33,24 +31,6 @@ module Content =
           selectedCollectionSongs = None
           collectionsLoading = false }
 
-
-    let defaultMusicCollections =
-        let collections = MusicCollections.getMusicCollections
-        let emptylist = 
-          collections
-          |> List.isEmpty
-        match emptylist with 
-        | true -> 
-          CollectionSettings.getDefaultPaths
-          |> Array.Parallel.map MusicCollections.getPreMusiColFromPath
-          |> MusicCollections.createMusicCollections
-        | false -> collections
-
-    let createDefaultSongs paths =
-        paths
-        |> Array.Parallel.map (fun collection -> MusicCollections.getPathsAndCollections defaultMusicCollections collection)
-        |> Array.Parallel.map MusicCollections.createSongsFromCollection
-
     let update msg state =
         match msg with
         | SetCollectionsLoading isLoading -> { state with collectionsLoading = isLoading }, Cmd.none, None
@@ -58,8 +38,8 @@ module Content =
             let cmd =
                 Cmd.batch
                     [ Cmd.ofMsg (SetCollectionsLoading true)
-                      Cmd.OfFunc.perform createDefaultSongs (CollectionSettings.getDefaultPaths)
-                          (fun _ -> AfterDefaultCollections(defaultMusicCollections)) ]
+                      Cmd.OfFunc.perform MusicCollections.createDefaultSongs (CollectionSettings.getDefaultPaths)
+                          (fun _ -> AfterDefaultCollections(MusicCollections.defaultMusicCollections)) ]
             state, cmd, None
         | AfterDefaultCollections collections ->
             { state with
