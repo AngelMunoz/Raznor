@@ -1,16 +1,13 @@
 namespace Raznor.App
 
-open Avalonia.FuncUI.Components
-open Avalonia.FuncUI.Types
-open LiteDB
-open System.IO
-open Avalonia.Threading
-
 module Content =
-    open System
-    open Elmish
     open Avalonia.Controls
+    open Avalonia.FuncUI.Components
     open Avalonia.FuncUI.DSL
+    open Avalonia.FuncUI.Types
+    open Elmish
+    open LiteDB
+    open System
     open Raznor.Core
 
     type State =
@@ -36,46 +33,23 @@ module Content =
           selectedCollectionSongs = None
           collectionsLoading = false }
 
-    let private getPathsAndCollections (targets: Types.MusicCollection list) (targetSettings: Types.CollectionSettings) =
-        let col = targets |> List.find (fun col -> col.name = targetSettings.name)
-        let di = DirectoryInfo(targetSettings.path)
 
-        let getFiles (extension: string) =
-            let getFileAndPath (file: FileInfo) = file.Name, file.FullName
-            di.GetFiles(extension, SearchOption.AllDirectories) |> Array.Parallel.map getFileAndPath
+    let defaultMusicCollections =
+        let collections = MusicCollections.getMusicCollections
+        let emptylist = 
+          collections
+          |> List.isEmpty
+        match emptylist with 
+        | true -> 
+          CollectionSettings.getDefaultPaths
+          |> Array.Parallel.map MusicCollections.getPreMusiColFromPath
+          |> MusicCollections.createMusicCollections
+        | false -> collections
 
-        let files =
-            [| getFiles "*.mp3"
-               getFiles "*.wav"
-               getFiles "*.mid" |]
-            |> Array.Parallel.collect (fun list -> list)
-
-        col.id, files
-
-
-    let private createSongsFromCollection (row: ObjectId * (string * string) []) =
-        let collection, items = row
-
-        let songRecord (name, path): Types.SongRecord =
-            { id = ObjectId.NewObjectId()
-              name = name
-              path = path
-              createdAt = DateTime.Now
-              isIn = [ collection ] }
-        items
-        |> Array.Parallel.map songRecord
-        |> MusicCollections.addNewSongBatch
-
-    let musicCollections =
-        CollectionSettings.getDefaultPaths
-        |> Array.Parallel.map MusicCollections.getPreMusiColFromPath
-        |> MusicCollections.createMusicCollections
-
-    let createSongs paths =
-        Dispatcher.UIThread.InvokeAsync(fun _ ->
-            paths
-            |> Array.Parallel.map (fun collection -> getPathsAndCollections musicCollections collection)
-            |> Array.Parallel.map createSongsFromCollection)
+    let createDefaultSongs paths =
+        paths
+        |> Array.Parallel.map (fun collection -> MusicCollections.getPathsAndCollections defaultMusicCollections collection)
+        |> Array.Parallel.map MusicCollections.createSongsFromCollection
 
     let update msg state =
         match msg with
@@ -84,8 +58,8 @@ module Content =
             let cmd =
                 Cmd.batch
                     [ Cmd.ofMsg (SetCollectionsLoading true)
-                      Cmd.OfTask.perform createSongs (CollectionSettings.getDefaultPaths)
-                          (fun _ -> AfterDefaultCollections(musicCollections)) ]
+                      Cmd.OfFunc.perform createDefaultSongs (CollectionSettings.getDefaultPaths)
+                          (fun _ -> AfterDefaultCollections(defaultMusicCollections)) ]
             state, cmd, None
         | AfterDefaultCollections collections ->
             { state with

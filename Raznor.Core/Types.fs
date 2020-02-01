@@ -18,7 +18,7 @@ module Types =
           id: ObjectId
           name: string
           path: string
-          isIn: ObjectId list
+          belongsTo: ObjectId
           createdAt: DateTime }
 
     type MusicCollection =
