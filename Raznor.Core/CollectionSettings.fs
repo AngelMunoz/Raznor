@@ -11,7 +11,12 @@ module CollectionSettings =
 
         let collections: CollectionSettings list =
             let onedrivepath = Environment.GetEnvironmentVariable("OneDriveConsumer")
-            let onedrivemusic = Path.Combine(onedrivepath, "Music")
+
+            let onedrivemusic =
+                match String.IsNullOrEmpty(onedrivepath) with
+                | true -> ""
+                | false -> Path.Combine(onedrivepath, "Music")
+
             [ yield { id = ObjectId.NewObjectId()
                       name = "My Music"
                       path = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
