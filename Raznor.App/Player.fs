@@ -20,6 +20,9 @@ module Player =
         | SetMediaList of MediaList
         | Play of int
         | PlaySingle of Types.SongRecord
+        | SetPlaylist of Types.SongRecord list
+        | PlaySongAt of int * Types.SongRecord
+        | DeleteSongAt of int * Types.SongRecord
 
     let init =
         { playlist = None
@@ -61,6 +64,7 @@ module Player =
             use media = PlayerLib.getMediaFromlocal song.path
             player.Play(media) |> ignore
             { state with player = Some player }, Cmd.none
+        | _ -> state, Cmd.none
 
 
     let private mediaButtons (state: State) (dispatch: Msg -> unit) =
@@ -87,6 +91,7 @@ module Player =
         DockPanel.create
             [ DockPanel.classes [ "mediabar" ]
               DockPanel.dock Dock.Bottom
+              DockPanel.horizontalAlignment HorizontalAlignment.Center
               DockPanel.children
                   [ mediaButtons state dispatch
                     progressBar state dispatch

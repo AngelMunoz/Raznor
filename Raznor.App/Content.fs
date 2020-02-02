@@ -12,9 +12,10 @@ module Content =
         { musicCollections: Types.MusicCollection list
           selectedCollection: Types.MusicCollection option
           selectedCollectionSongs: Types.SongRecord list option
-          collectionsLoading: bool }
+          collectionsLoading: bool
+          currentSelection: Types.SongRecord list }
 
-    type ExternalMsg = PlaySong of Types.SongRecord
+    type ExternalMsg = AddToPlayList of Types.SongRecord list
 
     type Msg =
         | AddDefaultCollections
@@ -22,14 +23,16 @@ module Content =
         | SetSelectedCollection of Types.MusicCollection option
         | SetSelectedCollectionSongs of Types.SongRecord list option
         | AfterDefaultCollections of Types.MusicCollection list
-        | PlaySong of Types.SongRecord
+        | SelectionItemsChanged of Types.SongRecord list
+        | AddSongsToPlaylist of Types.SongRecord list
 
     let init =
         let collections = MusicCollections.getMusicCollections
         { musicCollections = collections
           selectedCollection = None
           selectedCollectionSongs = None
-          collectionsLoading = false }
+          collectionsLoading = false
+          currentSelection = List.empty }
 
     let update msg state =
         match msg with
@@ -52,7 +55,8 @@ module Content =
                 | None -> List.empty
             { state with selectedCollection = collection }, Cmd.ofMsg (SetSelectedCollectionSongs(Some songs)), None
         | SetSelectedCollectionSongs songs -> { state with selectedCollectionSongs = songs }, Cmd.none, None
-        | PlaySong song -> state, Cmd.none, Some(ExternalMsg.PlaySong song)
+        | SelectionItemsChanged songs -> { state with currentSelection = songs }, Cmd.none, None
+        | AddSongsToPlaylist songs -> state, Cmd.none, Some(ExternalMsg.AddToPlayList(songs))
 
 
 
@@ -93,13 +97,21 @@ module Content =
     let private songTemplate (song: Types.SongRecord) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.spacing 8.0
-              StackPanel.onDoubleTapped (fun _ -> dispatch (PlaySong song))
               StackPanel.children [ TextBlock.create [ TextBlock.text song.name ] ] ]
 
     let private songRecordList (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
         ListBox.create
             [ ListBox.dock Dock.Right
               ListBox.dataItems songs
+              ListBox.selectionMode SelectionMode.Multiple
+              ListBox.onSelectedItemsChanged (fun items ->
+                  let songs =
+                      seq {
+                          for item in items do
+                              yield item :?> Types.SongRecord
+                      }
+                      |> Seq.toList
+                  dispatch (SelectionItemsChanged songs))
               ListBox.itemTemplate (DataTemplateView<Types.SongRecord>.create(fun item -> songTemplate item dispatch)) ]
 
     let private emptySongList (state: State) (dispatch: Msg -> unit) =
@@ -119,12 +131,20 @@ module Content =
         DockPanel.create
             [ DockPanel.children
                 [ collectionList state dispatch
-                  songList state dispatch ] ]
+                  songList state dispatch
+                  StackPanel.create
+                      [ StackPanel.dock Dock.Top
+                        StackPanel.children
+                            [ if state.currentSelection.Length > 0 then
+                                yield Button.create
+                                          [ Button.content "Add Songs to Playlist"
+                                            Button.onClick
+                                                (fun _ -> dispatch (AddSongsToPlaylist state.currentSelection)) ] ] ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
         TabControl.create
-            [ TabControl.dock Dock.Top
-              TabControl.tabStripPlacement Dock.Top
+            [ TabControl.dock Dock.Left
+              TabControl.tabStripPlacement Dock.Bottom
               TabControl.viewItems
                   [ TabItem.create
                       [ TabItem.header "Music Collections"
