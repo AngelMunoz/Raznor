@@ -35,31 +35,41 @@ module Shell =
         | Paused
         | Stopped
         | Ended
+        | TimeChanged of int64
+        | ChapterChanged of int
+        | LengthChanged of int64
 
-    module Subs = 
+    module Subs =
         let playing (player: MediaPlayer) =
-            let sub dispatch = 
-                player.Playing.Subscribe(fun _ -> dispatch Playing) |> ignore
-                ()
+            let sub dispatch = player.Playing.Subscribe(fun _ -> dispatch Playing) |> ignore
             Cmd.ofSub sub
-        
+
         let paused (player: MediaPlayer) =
-            let sub dispatch = 
-                player.Paused.Subscribe(fun _ -> dispatch Paused) |> ignore
-                ()
+            let sub dispatch = player.Paused.Subscribe(fun _ -> dispatch Paused) |> ignore
             Cmd.ofSub sub
 
         let stoped (player: MediaPlayer) =
-            let sub dispatch = 
-                player.Stopped.Subscribe(fun _ -> dispatch Stopped) |> ignore
-                ()
+            let sub dispatch = player.Stopped.Subscribe(fun _ -> dispatch Stopped) |> ignore
             Cmd.ofSub sub
 
         let ended (player: MediaPlayer) =
-            let sub dispatch = 
-                player.EndReached.Subscribe(fun _ -> dispatch Ended) |> ignore
-                ()
+            let sub dispatch = player.EndReached.Subscribe(fun _ -> dispatch Ended) |> ignore
             Cmd.ofSub sub
+
+        let timechanged (player: MediaPlayer) =
+            let sub dispatch = player.TimeChanged.Subscribe(fun args -> dispatch (TimeChanged args.Time)) |> ignore
+            Cmd.ofSub sub
+
+        let chapterchanged (player: MediaPlayer) =
+            let sub dispatch =
+                player.ChapterChanged.Subscribe(fun args -> dispatch (ChapterChanged args.Chapter)) |> ignore
+            Cmd.ofSub sub
+
+        let lengthchanged (player: MediaPlayer) =
+            let sub dispatch =
+                player.LengthChanged.Subscribe(fun args -> dispatch (LengthChanged args.Length)) |> ignore
+            Cmd.ofSub sub
+
 
     let init (window: HostWindow) (player: MediaPlayer) =
         { window = window
@@ -73,22 +83,37 @@ module Shell =
         | None -> Cmd.none
         | Some msg ->
             match msg with
-            | Playlist.ExternalMsg.SetPlaylist playlist -> Cmd.none
-            | Playlist.ExternalMsg.RemoveSong(int, song) -> Cmd.none
-            | Playlist.ExternalMsg.PlaySong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.Play song))
+            | Playlist.ExternalMsg.PlaySong(int, song) ->
+                Cmd.batch
+                    [ Cmd.ofMsg (PlayerMsg(Player.Msg.Play song))
+                      Cmd.ofMsg (SetTitle song.name) ]
+
+    let private handlePlayerExternal (msg: Player.ExternalMsg option) =
+        match msg with
+        | None -> Cmd.none
+        | Some msg ->
+            match msg with
+            | Player.ExternalMsg.Play -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetAny))
+            | Player.ExternalMsg.Next -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetNext))
+            | Player.ExternalMsg.Previous -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetPrevious))
 
     let update (msg: Msg) (state: State) =
         match msg with
         | PlayerMsg playermsg ->
-            let s, cmd = Player.update playermsg state.playerState
-            { state with playerState = s }, Cmd.map PlayerMsg cmd
+            let s, cmd, external = Player.update playermsg state.playerState
+            let handled = handlePlayerExternal external
+            let mapped = Cmd.map PlayerMsg cmd
+            let batch = Cmd.batch [ mapped; handled ]
+            { state with playerState = s }, batch
         | PlaylistMsg playlistmsg ->
             let s, cmd, external = Playlist.update playlistmsg state.playlistState
             let mapped = Cmd.map PlaylistMsg cmd
             let handled = handlePlaylistExternal external
             let batch = Cmd.batch [ mapped; handled ]
             { state with playlistState = s }, batch
-        | SetTitle title -> { state with title = title }, Cmd.none
+        | SetTitle title ->
+            state.window.Title <- title
+            { state with title = title }, Cmd.none
         | OpenFiles ->
             let dialog = Dialogs.getMusicFilesDialog None
             let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
@@ -104,18 +129,17 @@ module Shell =
             let songs = MusicCollections.populateSongs paths |> Array.toList
 
             state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
-        (* The follwing messages are fired from the player's subscriptions 
+        (* The follwing messages are fired from the player's subscriptions
            I feel these are can help to handle updates accross the whole application
            There are a lot more of events the Player Emits, but for the moment
            we'll work with these *)
-        | Playing ->
-            state, Cmd.none
-        | Paused  ->
-            state, Cmd.none
-        | Stopped ->
-            state, Cmd.none
-        | Ended   ->
-            state, Cmd.none
+        | Playing -> state, Cmd.none
+        | Paused -> state, Cmd.none
+        | Stopped -> state, Cmd.none
+        | Ended -> state, Cmd.none
+        | TimeChanged time -> state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.SetPos time))
+        | ChapterChanged chapter -> state, Cmd.none
+        | LengthChanged length -> state, Cmd.none
 
     let menuBar state dispatch =
         Menu.create
@@ -126,11 +150,13 @@ module Shell =
                         MenuItem.viewItems
                             [ MenuItem.create
                                 [ MenuItem.header "Select Files"
-                                  MenuItem.icon (Image.FromString "avares://Raznor.Desktop/Assets/Icons/file-multiple-dark.png")
+                                  MenuItem.icon
+                                      (Image.FromString "avares://Raznor.Desktop/Assets/Icons/file-multiple-dark.png")
                                   MenuItem.onClick (fun _ -> dispatch OpenFiles) ]
                               MenuItem.create
                                   [ MenuItem.header "Select Folder"
-                                    MenuItem.icon (Image.FromString "avares://Raznor.Desktop/Assets/Icons/folder-music-dark.png")
+                                    MenuItem.icon
+                                        (Image.FromString "avares://Raznor.Desktop/Assets/Icons/folder-music-dark.png")
                                     MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
@@ -158,6 +184,7 @@ module Shell =
             let programInit (window, player) = init window player, Cmd.none
 
             this.AttachDevTools(KeyGesture(Key.F12))
+
             let syncDispatch (dispatch: Dispatch<'msg>): Dispatch<'msg> =
                 match Dispatcher.UIThread.CheckAccess() with
                 | true -> fun msg -> Dispatcher.UIThread.Post(fun () -> dispatch msg)
@@ -170,6 +197,8 @@ module Shell =
             |> Program.withSubscription (fun _ -> Subs.paused player)
             |> Program.withSubscription (fun _ -> Subs.stoped player)
             |> Program.withSubscription (fun _ -> Subs.ended player)
+            |> Program.withSubscription (fun _ -> Subs.timechanged player)
+            |> Program.withSubscription (fun _ -> Subs.lengthchanged player)
+            |> Program.withSubscription (fun _ -> Subs.chapterchanged player)
             |> Program.withConsoleTrace
             |> Program.runWith (this, player)
-

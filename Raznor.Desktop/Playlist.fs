@@ -10,19 +10,21 @@ module Playlist =
     open Raznor.Core
 
     type State =
-        { songList: Types.SongRecord list option }
+        { songList: Types.SongRecord list option
+          currentIndex: int }
 
-    type ExternalMsg =
-        | SetPlaylist of Types.SongRecord list
-        | PlaySong of index: int * song: Types.SongRecord
-        | RemoveSong of index: int * song: Types.SongRecord
+    type ExternalMsg = PlaySong of index: int * song: Types.SongRecord
 
     type Msg =
+        | GetAny
+        | GetNext
+        | GetPrevious
         | AddFiles of Types.SongRecord list
         | PlaySong of Types.SongRecord
-        | RemoveSong of Types.SongRecord
 
-    let init = { songList = None }
+    let init =
+        { songList = None
+          currentIndex = 0 }
 
     let private tryFindSong (songlist: Types.SongRecord list option) (song: Types.SongRecord) =
         match songlist with
@@ -32,27 +34,43 @@ module Playlist =
             | None -> None
         | None -> None
 
-    let private filteredSongList (songlist: Types.SongRecord list option) (song: Types.SongRecord) =
-        match songlist with
-        | Some slist ->
-            slist
-            |> List.filter (fun item -> item.id <> song.id)
-            |> Some
-        | None -> None
-
     let update (msg: Msg) (state: State): State * Cmd<Msg> * ExternalMsg option =
         match msg with
-        | AddFiles files -> { state with songList = Some files }, Cmd.none, Some(SetPlaylist files)
+        | AddFiles files -> { state with songList = Some files }, Cmd.none, None
         | PlaySong song ->
             let index = tryFindSong state.songList song
             match index with
-            | Some index -> state, Cmd.none, Some(ExternalMsg.PlaySong(index, song))
+            | Some index -> { state with currentIndex = index }, Cmd.none, Some(ExternalMsg.PlaySong(index, song))
             | None -> state, Cmd.none, None
-        | RemoveSong song ->
-            let index = tryFindSong state.songList song
-            let songlist = filteredSongList state.songList song
-            match index with
-            | Some index -> { state with songList = songlist }, Cmd.none, Some(ExternalMsg.RemoveSong(index, song))
+        | GetAny ->
+            match state.songList with
+            | Some songs ->
+                if songs.IsEmpty
+                then state, Cmd.none, None
+                else state, Cmd.ofMsg (PlaySong songs.Head), None
+            | None -> state, Cmd.none, None
+        | GetNext ->
+            match state.songList with
+            | Some songs ->
+                if songs.IsEmpty then
+                    state, Cmd.none, None
+                else if state.currentIndex + 1 >= songs.Length then
+                    state, Cmd.none, None
+                else
+                    let song = songs.Item(state.currentIndex + 1)
+                    state, Cmd.ofMsg (PlaySong song), None
+            | None -> state, Cmd.none, None
+        | GetPrevious ->
+            match state.songList with
+            | Some songs ->
+                if songs.IsEmpty then
+                    state, Cmd.none, None
+                else if (state.currentIndex - 1) < 0 then
+                    state, Cmd.none, None
+                else
+                    let song = songs.Item(state.currentIndex - 1)
+
+                    state, Cmd.ofMsg (PlaySong song), None
             | None -> state, Cmd.none, None
 
     let private songTemplate (song: Types.SongRecord) (dispatch: Msg -> unit) =
@@ -62,7 +80,6 @@ module Playlist =
               StackPanel.onKeyUp (fun keyargs ->
                   match keyargs.Key with
                   | Key.Enter -> dispatch (PlaySong song)
-                  | Key.Delete -> dispatch (RemoveSong song)
                   /// eventually add other shortcuts to re-arrange songs or something alike
                   | _ -> ())
               StackPanel.children [ TextBlock.create [ TextBlock.text song.name ] ] ]
@@ -70,6 +87,7 @@ module Playlist =
     let private songRecordList (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
         ListBox.create
             [ ListBox.dataItems songs
+              ListBox.maxHeight 420.0
               ListBox.itemTemplate (DataTemplateView<Types.SongRecord>.create(fun item -> songTemplate item dispatch)) ]
 
     let private emptySongList (state: State) (dispatch: Msg -> unit) =
