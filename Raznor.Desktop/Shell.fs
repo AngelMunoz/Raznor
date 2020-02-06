@@ -1,20 +1,18 @@
 namespace Raznor.Desktop
 
-open Avalonia.Input
-
-
 
 module Shell =
     open System
     open Elmish
     open Avalonia
     open Avalonia.Controls
+    open Avalonia.Input
     open Avalonia.Layout
-    open Avalonia.Media
-    open Avalonia.Media.Imaging
+    open Avalonia.Threading
     open Avalonia.FuncUI.Elmish
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.DSL
+    open LibVLCSharp.Shared
     open Raznor.Desktop
     open Raznor.Core
 
@@ -32,13 +30,41 @@ module Shell =
         | OpenFolder
         | AfterSelectFolder of string
         | AfterSelectFiles of string array
+        (* Handle Media Player Events *)
+        | Playing
+        | Paused
+        | Stopped
+        | Ended
 
-    let init (window: HostWindow) =
-        let title = "Raznor App F#"
-        window.Title <- title
+    module Subs = 
+        let playing (player: MediaPlayer) =
+            let sub dispatch = 
+                player.Playing.Subscribe(fun _ -> dispatch Playing) |> ignore
+                ()
+            Cmd.ofSub sub
+        
+        let paused (player: MediaPlayer) =
+            let sub dispatch = 
+                player.Paused.Subscribe(fun _ -> dispatch Paused) |> ignore
+                ()
+            Cmd.ofSub sub
+
+        let stoped (player: MediaPlayer) =
+            let sub dispatch = 
+                player.Stopped.Subscribe(fun _ -> dispatch Stopped) |> ignore
+                ()
+            Cmd.ofSub sub
+
+        let ended (player: MediaPlayer) =
+            let sub dispatch = 
+                player.EndReached.Subscribe(fun _ -> dispatch Ended) |> ignore
+                ()
+            Cmd.ofSub sub
+
+    let init (window: HostWindow) (player: MediaPlayer) =
         { window = window
-          title = title
-          playerState = Player.init
+          title = "Raznor F# :)"
+          playerState = Player.init player
           playlistState = Playlist.init }
 
 
@@ -47,9 +73,9 @@ module Shell =
         | None -> Cmd.none
         | Some msg ->
             match msg with
-            | Playlist.ExternalMsg.SetPlaylist playlist -> Cmd.ofMsg (PlayerMsg(Player.Msg.SetPlaylist(playlist)))
-            | Playlist.ExternalMsg.PlaySong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.PlaySongAt(int, song)))
-            | Playlist.ExternalMsg.RemoveSong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.DeleteSongAt(int, song)))
+            | Playlist.ExternalMsg.SetPlaylist playlist -> Cmd.none
+            | Playlist.ExternalMsg.RemoveSong(int, song) -> Cmd.none
+            | Playlist.ExternalMsg.PlaySong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.Play song))
 
     let update (msg: Msg) (state: State) =
         match msg with
@@ -78,6 +104,18 @@ module Shell =
             let songs = MusicCollections.populateSongs paths |> Array.toList
 
             state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
+        (* The follwing messages are fired from the player's subscriptions 
+           I feel these are can help to handle updates accross the whole application
+           There are a lot more of events the Player Emits, but for the moment
+           we'll work with these *)
+        | Playing ->
+            state, Cmd.none
+        | Paused  ->
+            state, Cmd.none
+        | Stopped ->
+            state, Cmd.none
+        | Ended   ->
+            state, Cmd.none
 
     let menuBar state dispatch =
         Menu.create
@@ -116,11 +154,22 @@ module Shell =
 
             //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
             //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
-            let programInit (window: ShellWindow) = init window, Cmd.none
+            let player = PlayerLib.getEmptyPlayer
+            let programInit (window, player) = init window player, Cmd.none
 
             this.AttachDevTools(KeyGesture(Key.F12))
+            let syncDispatch (dispatch: Dispatch<'msg>): Dispatch<'msg> =
+                match Dispatcher.UIThread.CheckAccess() with
+                | true -> fun msg -> Dispatcher.UIThread.Post(fun () -> dispatch msg)
+                | false -> fun msg -> dispatch msg
 
             Program.mkProgram programInit update view
             |> Program.withHost this
+            |> Program.withSyncDispatch syncDispatch
+            |> Program.withSubscription (fun _ -> Subs.playing player)
+            |> Program.withSubscription (fun _ -> Subs.paused player)
+            |> Program.withSubscription (fun _ -> Subs.stoped player)
+            |> Program.withSubscription (fun _ -> Subs.ended player)
             |> Program.withConsoleTrace
-            |> Program.runWith this
+            |> Program.runWith (this, player)
+
