@@ -10,9 +10,8 @@ type App() =
     inherit Application()
 
     override this.Initialize() =
-        this.Styles.Load "avares://Avalonia.Themes.Default/DefaultTheme.xaml"
-        this.Styles.Load "avares://Avalonia.Themes.Default/Accents/BaseDark.xaml"
-        this.Styles.Load "avares://Raznor.App/Styles.xaml"
+        this.Styles.Load "avares://Citrus.Avalonia/Magma.xaml"
+        this.Styles.Load "avares://Raznor.Desktop/Styles.xaml"
         Core.Initialize()
 
     override this.OnFrameworkInitializationCompleted() =

@@ -15,6 +15,7 @@
     
     <ItemGroup>
         <PackageReference Include="Avalonia.Desktop" Version="0.9.2" />
+        <PackageReference Include="Citrus.Avalonia" Version="1.2.2" />
         <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.2.2" />
         <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.2.2" />
         <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.2.0" />
