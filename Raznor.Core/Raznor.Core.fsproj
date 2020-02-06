@@ -10,8 +10,10 @@
     <Compile Include="CollectionSettings.fs" />
     <Compile Include="MusicCollections.fs" />
     <Compile Include="PlayerLib.fs" />
+    <Compile Include="Dialogs.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.2" />
     <PackageReference Include="LibVLCSharp" Version="3.4.2" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.8.1" />
     <PackageReference Include="LiteDB" Version="4.1.4" />

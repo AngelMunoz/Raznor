@@ -53,7 +53,7 @@ module MusicCollections =
             [| getFiles "*.mp3"
                getFiles "*.wav"
                getFiles "*.mid" |]
-            |> Array.Parallel.collect (fun list -> list)
+            |> Array.Parallel.collect id
 
         col.id, files
 
@@ -80,6 +80,33 @@ module MusicCollections =
             |> List.map getPreMusiColFromPath
             |> createMusicCollections
         | false -> collections
+
+    let populateSongs (paths: string array): Types.SongRecord array =
+        paths
+        |> Array.Parallel.map FileInfo
+        |> Array.Parallel.map (fun info -> info.Name, info.FullName)
+        |> Array.Parallel.map (fun (name, path) ->
+            { id = ObjectId.NewObjectId()
+              name = name
+              path = path
+              createdAt = DateTime.Now
+              belongsTo = null })
+
+    let populateFromDirectory (path: string): Types.SongRecord array =
+        match String.IsNullOrEmpty path with
+        | true -> Array.empty
+        | false ->
+            let dirinfo = DirectoryInfo path
+            dirinfo.GetFiles()
+            |> Array.filter (fun info -> info.Extension = ".mp3" || info.Extension = ".wav" || info.Extension = ".mid")
+            |> Array.Parallel.map (fun info -> info.Name, info.FullName)
+            |> Array.Parallel.map (fun (name, path) ->
+                { id = ObjectId.NewObjectId()
+                  name = name
+                  path = path
+                  createdAt = DateTime.Now
+                  belongsTo = null })
+
 
     let createDefaultSongs (paths: Types.CollectionSettings list) =
         paths

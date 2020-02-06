@@ -1,4 +1,4 @@
-namespace Raznor.App
+namespace Raznor.Desktop
 
 module Playlist =
     open Avalonia.Controls
@@ -42,7 +42,7 @@ module Playlist =
 
     let update (msg: Msg) (state: State): State * Cmd<Msg> * ExternalMsg option =
         match msg with
-        | AddFiles files -> { state with songList = Some files }, Cmd.none, None
+        | AddFiles files -> { state with songList = Some files }, Cmd.none, Some(SetPlaylist files)
         | PlaySong song ->
             let index = tryFindSong state.songList song
             match index with
@@ -75,9 +75,7 @@ module Playlist =
     let private emptySongList (state: State) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.spacing 8.0
-              StackPanel.children
-                  [ TextBlock.create
-                      [ TextBlock.text "Nothing to play here :). Select something from your collections" ] ] ]
+              StackPanel.children [ TextBlock.create [ TextBlock.text "Nothing to play here :)" ] ] ]
 
     let private songList (state: State) (dispatch: Msg -> unit) =
         match state.songList with

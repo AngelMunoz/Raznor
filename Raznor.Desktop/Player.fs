@@ -1,4 +1,4 @@
-namespace Raznor.App
+namespace Raznor.Desktop
 
 
 module Player =
@@ -37,7 +37,6 @@ module Player =
                 match state.player with
                 | None -> Some PlayerLib.getEmptyPlayer
                 | player -> player
-
             match state.playlist with
             | Some pl -> pl.Dispose()
             | None -> ()
@@ -64,6 +63,19 @@ module Player =
             use media = PlayerLib.getMediaFromlocal song.path
             player.Play(media) |> ignore
             { state with player = Some player }, Cmd.none
+        | PlaySongAt(index, song) ->
+            let player =
+                match state.player with
+                | Some player -> player
+                | None -> PlayerLib.getEmptyPlayer
+
+            let song =
+                match state.playlist with
+                | Some playlist -> playlist.Item(index)
+                | None -> PlayerLib.getMediaFromlocal song.path
+
+            player.Play(song) |> ignore
+            state, Cmd.none
         | _ -> state, Cmd.none
 
 

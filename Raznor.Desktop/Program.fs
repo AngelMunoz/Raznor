@@ -1,9 +1,9 @@
-namespace Raznor.App
+namespace Raznor.Desktop
 
 open Avalonia
 open Avalonia.Controls.ApplicationLifetimes
 open Avalonia.FuncUI
-open Raznor.App.Shell
+open Raznor.Desktop.Shell
 open LibVLCSharp.Shared
 
 type App() =

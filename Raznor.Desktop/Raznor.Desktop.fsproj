@@ -7,7 +7,6 @@
 
     <ItemGroup>
         <Compile Include="Playlist.fs" />
-        <Compile Include="Content.fs" />
         <Compile Include="Player.fs" />
         <Compile Include="Shell.fs" />
         <Compile Include="Program.fs" />

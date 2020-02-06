@@ -1,29 +1,30 @@
-namespace Raznor.App
-
-open System
+namespace Raznor.Desktop
 
 module Shell =
+    open System
     open Elmish
     open Avalonia.Controls
     open Avalonia.Layout
     open Avalonia.FuncUI.Elmish
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.DSL
-    open Raznor.App
-    open Raznor.Core.PlayerLib
+    open Raznor.Desktop
+    open Raznor.Core
 
     type State =
         { window: HostWindow
           title: string
           playerState: Player.State
-          contentState: Content.State
           playlistState: Playlist.State }
 
     type Msg =
         | PlayerMsg of Player.Msg
-        | ContentMsg of Content.Msg
         | PlaylistMsg of Playlist.Msg
         | SetTitle of string
+        | OpenFiles
+        | OpenFolder
+        | AfterSelectFolder of string
+        | AfterSelectFiles of string array
 
     let init (window: HostWindow) =
         let title = "Raznor App F#"
@@ -31,7 +32,6 @@ module Shell =
         { window = window
           title = title
           playerState = Player.init
-          contentState = Content.init
           playlistState = Playlist.init }
 
 
@@ -44,24 +44,11 @@ module Shell =
             | Playlist.ExternalMsg.PlaySong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.PlaySongAt(int, song)))
             | Playlist.ExternalMsg.RemoveSong(int, song) -> Cmd.ofMsg (PlayerMsg(Player.Msg.DeleteSongAt(int, song)))
 
-    let handleContentExternal (msg: Content.ExternalMsg option) =
-        match msg with
-        | None -> Cmd.none
-        | Some msg ->
-            match msg with
-            | Content.ExternalMsg.AddToPlayList songs -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.AddFiles(songs)))
-
     let update (msg: Msg) (state: State) =
         match msg with
         | PlayerMsg playermsg ->
             let s, cmd = Player.update playermsg state.playerState
             { state with playerState = s }, Cmd.map PlayerMsg cmd
-        | ContentMsg contentmsg ->
-            let s, cmd, external = Content.update contentmsg state.contentState
-            let mapped = Cmd.map ContentMsg cmd
-            let handled = handleContentExternal external
-            let batch = Cmd.batch [ mapped; handled ]
-            { state with contentState = s }, batch
         | PlaylistMsg playlistmsg ->
             let s, cmd, external = Playlist.update playlistmsg state.playlistState
             let mapped = Cmd.map PlaylistMsg cmd
@@ -69,8 +56,35 @@ module Shell =
             let batch = Cmd.batch [ mapped; handled ]
             { state with playlistState = s }, batch
         | SetTitle title -> { state with title = title }, Cmd.none
+        | OpenFiles ->
+            let dialog = Dialogs.getMusicFilesDialog None
+            let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
+            state, Cmd.OfAsync.perform showDialog state.window AfterSelectFiles
+        | OpenFolder ->
+            let dialog = Dialogs.getFolderDialog
+            let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
+            state, Cmd.OfAsync.perform showDialog state.window AfterSelectFolder
+        | AfterSelectFolder path ->
+            let songs = MusicCollections.populateFromDirectory path |> Array.toList
+            state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
+        | AfterSelectFiles paths ->
+            let songs = MusicCollections.populateSongs paths |> Array.toList
 
-    let menuBar state dispatch = Menu.create [ Menu.dock Dock.Top ]
+            state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
+
+    let menuBar state dispatch =
+        Menu.create
+            [ Menu.dock Dock.Top
+              Menu.viewItems
+                  [ MenuItem.create
+                      [ MenuItem.header "Files"
+                        MenuItem.viewItems
+                            [ MenuItem.create
+                                [ MenuItem.header "Select File"
+                                  MenuItem.onClick (fun _ -> dispatch OpenFiles) ]
+                              MenuItem.create
+                                  [ MenuItem.header "Select Folder"
+                                    MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
         DockPanel.create
@@ -79,7 +93,6 @@ module Shell =
               DockPanel.lastChildFill false
               DockPanel.children
                   [ menuBar state dispatch
-                    Content.view state.contentState (ContentMsg >> dispatch)
                     Playlist.view state.playlistState (PlaylistMsg >> dispatch)
                     Player.view state.playerState (PlayerMsg >> dispatch) ] ]
 
