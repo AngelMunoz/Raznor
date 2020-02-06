@@ -11,72 +11,20 @@ module Player =
 
 
     type State =
-        { playlist: MediaList option
-          player: MediaPlayer option
-          playlistSize: int
-          next: int }
+        { player: MediaPlayer }
 
     type Msg =
-        | SetMediaList of MediaList
-        | Play of int
-        | PlaySingle of Types.SongRecord
-        | SetPlaylist of Types.SongRecord list
-        | PlaySongAt of int * Types.SongRecord
-        | DeleteSongAt of int * Types.SongRecord
+        | Play of Types.SongRecord
 
-    let init =
-        { playlist = None
-          player = None
-          playlistSize = 0
-          next = 0 }
+    let init player =
+        { player = player }
 
     let update msg state =
         match msg with
-        | SetMediaList playlist ->
-            let player =
-                match state.player with
-                | None -> Some PlayerLib.getEmptyPlayer
-                | player -> player
-            match state.playlist with
-            | Some pl -> pl.Dispose()
-            | None -> ()
-            { state with
-                  player = player
-                  playlist = Some playlist
-                  playlistSize = playlist.Count
-                  next = 0 }, Cmd.ofMsg (Play state.next)
-        | Play next ->
-            match state.player, state.playlist with
-            | (Some player, Some playlist) ->
-                let item = playlist.Item next
-                player.Play item |> ignore
-                { state with next = next + 1 }, Cmd.none
-            | (_, _) -> state, Cmd.none
-        | PlaySingle song ->
-            let player =
-                match state.player with
-                | Some player -> player
-                | None -> PlayerLib.getEmptyPlayer
-            match state.playlist with
-            | Some pl -> pl.Dispose()
-            | None -> ()
+        | Play song ->
             use media = PlayerLib.getMediaFromlocal song.path
-            player.Play(media) |> ignore
-            { state with player = Some player }, Cmd.none
-        | PlaySongAt(index, song) ->
-            let player =
-                match state.player with
-                | Some player -> player
-                | None -> PlayerLib.getEmptyPlayer
-
-            let song =
-                match state.playlist with
-                | Some playlist -> playlist.Item(index)
-                | None -> PlayerLib.getMediaFromlocal song.path
-
-            player.Play(song) |> ignore
+            state.player.Play media |> ignore
             state, Cmd.none
-        | _ -> state, Cmd.none
 
 
     let private mediaButtons (state: State) (dispatch: Msg -> unit) =
