@@ -1,10 +1,17 @@
 namespace Raznor.Desktop
 
+open Avalonia.Input
+
+
+
 module Shell =
     open System
     open Elmish
+    open Avalonia
     open Avalonia.Controls
     open Avalonia.Layout
+    open Avalonia.Media
+    open Avalonia.Media.Imaging
     open Avalonia.FuncUI.Elmish
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.DSL
@@ -80,10 +87,12 @@ module Shell =
                       [ MenuItem.header "Files"
                         MenuItem.viewItems
                             [ MenuItem.create
-                                [ MenuItem.header "Select File"
+                                [ MenuItem.header "Select Files"
+                                  MenuItem.icon (Image.FromString "avares://Raznor.Desktop/Assets/Icons/file-multiple-dark.png")
                                   MenuItem.onClick (fun _ -> dispatch OpenFiles) ]
                               MenuItem.create
                                   [ MenuItem.header "Select Folder"
+                                    MenuItem.icon (Image.FromString "avares://Raznor.Desktop/Assets/Icons/folder-music-dark.png")
                                     MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
@@ -109,6 +118,7 @@ module Shell =
             //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
             let programInit (window: ShellWindow) = init window, Cmd.none
 
+            this.AttachDevTools(KeyGesture(Key.F12))
 
             Program.mkProgram programInit update view
             |> Program.withHost this

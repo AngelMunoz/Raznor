@@ -6,11 +6,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Playlist.fs" />
+      <Compile Include="Playlist.fs" />
         <Compile Include="Player.fs" />
         <Compile Include="Shell.fs" />
         <Compile Include="Program.fs" />
         <AvaloniaResource Include="**\*.xaml" />
+        <AvaloniaResource Include="Assets\*" />
+        <AvaloniaResource Include="Assets\Icons\*" />
     </ItemGroup>
     
     <ItemGroup>
@@ -25,6 +27,8 @@
     <ItemGroup>
         <EmbeddedResource Remove=".template.config\**" />
     </ItemGroup>
+
+    <ItemGroup />
 
     <ItemGroup>
       <ProjectReference Include="..\Raznor.Core\Raznor.Core.fsproj" />
