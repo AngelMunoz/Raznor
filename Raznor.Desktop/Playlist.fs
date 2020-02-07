@@ -1,6 +1,7 @@
 namespace Raznor.Desktop
 
 module Playlist =
+    open System
     open Avalonia.Controls
     open Avalonia.Input
     open Avalonia.FuncUI.Components
@@ -11,7 +12,8 @@ module Playlist =
 
     type State =
         { songList: Types.SongRecord list option
-          currentIndex: int }
+          currentIndex: int
+          loopState: Types.LoopState }
 
     type ExternalMsg = PlaySong of index: int * song: Types.SongRecord
 
@@ -19,12 +21,31 @@ module Playlist =
         | GetAny
         | GetNext
         | GetPrevious
+        | Shuffle
         | AddFiles of Types.SongRecord list
         | PlaySong of Types.SongRecord
+        | SetLoopState of Types.LoopState
 
     let init =
         { songList = None
-          currentIndex = 0 }
+          currentIndex = 0
+          loopState = Types.LoopState.Off }
+
+    let private shuffle (org: _ list) =
+        let rng = new Random()
+        let arr = Array.copy (org |> List.toArray)
+        let max = (arr.Length - 1)
+
+        let randomSwap (arr: _ []) i =
+            let pos = rng.Next(max)
+            let tmp = arr.[pos]
+            arr.[pos] <- arr.[i]
+            arr.[i] <- tmp
+            arr
+
+        [| 0 .. max |]
+        |> Array.fold randomSwap arr
+        |> Array.toList
 
     let private tryFindSong (songlist: Types.SongRecord list option) (song: Types.SongRecord) =
         match songlist with
@@ -37,6 +58,7 @@ module Playlist =
     let update (msg: Msg) (state: State): State * Cmd<Msg> * ExternalMsg option =
         match msg with
         | AddFiles files -> { state with songList = Some files }, Cmd.none, None
+        | SetLoopState loopState -> { state with loopState = loopState }, Cmd.none, None
         | PlaySong song ->
             let index = tryFindSong state.songList song
             match index with
@@ -55,10 +77,16 @@ module Playlist =
                 if songs.IsEmpty then
                     state, Cmd.none, None
                 else if state.currentIndex + 1 >= songs.Length then
-                    state, Cmd.none, None
+                    match state.loopState with
+                    | Types.LoopState.Off -> state, Cmd.none, None
+                    | Types.LoopState.All -> { state with currentIndex = 0 }, Cmd.ofMsg (PlaySong songs.Head), None
+                    | Types.LoopState.Single -> state, Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))), None
                 else
-                    let song = songs.Item(state.currentIndex + 1)
-                    state, Cmd.ofMsg (PlaySong song), None
+                    match state.loopState with
+                    | Types.LoopState.Single -> state, Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))), None
+                    | _ ->
+                        let song = songs.Item(state.currentIndex + 1)
+                        state, Cmd.ofMsg (PlaySong song), None
             | None -> state, Cmd.none, None
         | GetPrevious ->
             match state.songList with
@@ -72,6 +100,16 @@ module Playlist =
 
                     state, Cmd.ofMsg (PlaySong song), None
             | None -> state, Cmd.none, None
+        | Shuffle ->
+            match state.songList with
+            | Some songs ->
+                let shuffled = shuffle songs
+
+                { state with
+                      songList = Some shuffled
+                      currentIndex = 0 }, Cmd.none, None
+            | None -> state, Cmd.none, None
+
 
     let private songTemplate (song: Types.SongRecord) (dispatch: Msg -> unit) =
         StackPanel.create

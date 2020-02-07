@@ -96,6 +96,8 @@ module Shell =
             | Player.ExternalMsg.Play -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetAny))
             | Player.ExternalMsg.Next -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetNext))
             | Player.ExternalMsg.Previous -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.GetPrevious))
+            | Player.ExternalMsg.Shuffle -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.Shuffle))
+            | Player.ExternalMsg.SetLoopState loopstate -> Cmd.ofMsg (PlaylistMsg(Playlist.Msg.SetLoopState loopstate))
 
     let update (msg: Msg) (state: State) =
         match msg with
@@ -123,10 +125,10 @@ module Shell =
             let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
             state, Cmd.OfAsync.perform showDialog state.window AfterSelectFolder
         | AfterSelectFolder path ->
-            let songs = MusicCollections.populateFromDirectory path |> Array.toList
+            let songs = Songs.populateFromDirectory path |> Array.toList
             state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
         | AfterSelectFiles paths ->
-            let songs = MusicCollections.populateSongs paths |> Array.toList
+            let songs = Songs.populateSongs paths |> Array.toList
 
             state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
         (* The follwing messages are fired from the player's subscriptions
@@ -136,7 +138,7 @@ module Shell =
         | Playing -> state, Cmd.none
         | Paused -> state, Cmd.none
         | Stopped -> state, Cmd.none
-        | Ended -> state, Cmd.none
+        | Ended -> state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.GetNext))
         | TimeChanged time -> state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.SetPos time))
         | ChapterChanged chapter -> state, Cmd.none
         | LengthChanged length -> state, Cmd.none

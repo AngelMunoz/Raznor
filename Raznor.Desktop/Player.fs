@@ -1,42 +1,48 @@
 namespace Raznor.Desktop
 
 
+
 module Player =
     open Elmish
     open LibVLCSharp.Shared
     open Avalonia.Controls
-    open Avalonia.Media
-    open Avalonia.Media.Imaging
     open Avalonia.Layout
+    open Avalonia.FuncUI
     open Avalonia.FuncUI.DSL
     open Raznor.Core
-
 
     type State =
         { player: MediaPlayer
           length: int64
-          sliderPos: int }
+          sliderPos: int
+          loopState: Types.LoopState }
+
 
     type ExternalMsg =
         | Next
         | Previous
         | Play
+        | Shuffle
+        | SetLoopState of Types.LoopState
 
     type Msg =
         | Play of Types.SongRecord
         | Seek of double
         | SetPos of int64
         | SetLength of int64
+        | SetLoopState of Types.LoopState
         | Previous
         | Pause
         | Stop
         | PlayInternal
         | Next
+        | Shuffle
 
     let init player =
         { player = player
           length = 0L
-          sliderPos = 0 }
+          sliderPos = 0
+          loopState = Types.LoopState.Off }
 
     let update msg state =
         match msg with
@@ -52,6 +58,9 @@ module Player =
         | SetPos position ->
             let pos = (position * 100L / state.player.Length) |> int
             { state with sliderPos = pos }, Cmd.none, None
+        | SetLoopState loopState ->
+            { state with loopState = loopState }, Cmd.none, Some(ExternalMsg.SetLoopState loopState)
+        | Shuffle -> state, Cmd.none, Some ExternalMsg.Shuffle
         | Previous ->
             state.player.PreviousChapter()
             state, Cmd.none, Some ExternalMsg.Previous
@@ -70,11 +79,6 @@ module Player =
 
 
     let private mediaButtons (state: State) (dispatch: Msg -> unit) =
-        let backwards = "avares://Raznor.Desktop/Assets/Icons/skip-previous-outline-light.png"
-        let play = "avares://Raznor.Desktop/Assets/Icons/play-outline-light.png"
-        let pause = "avares://Raznor.Desktop/Assets/Icons/pause-circle-outline-light.png"
-        let stop = "avares://Raznor.Desktop/Assets/Icons/stop-circle-outline-light.png"
-        let next = "avares://Raznor.Desktop/Assets/Icons/skip-next-outline-light.png"
         StackPanel.create
             [ StackPanel.verticalAlignment VerticalAlignment.Bottom
               StackPanel.horizontalAlignment HorizontalAlignment.Left
@@ -82,44 +86,62 @@ module Player =
               StackPanel.dock Dock.Bottom
               StackPanel.children
                   [ yield Button.create
-                              [ Button.background (Bitmap.Create backwards |> ImageBrush)
+                              [ Button.content Icons.previous
+                                Button.classes [ "mediabtn" ]
                                 Button.onClick (fun _ -> dispatch Previous) ]
                     if state.player.IsPlaying then
                         yield Button.create
-                                  [ Button.background (Bitmap.Create pause |> ImageBrush)
+                                  [ Button.content Icons.pause
+                                    Button.classes [ "mediabtn" ]
                                     Button.onClick (fun _ -> dispatch Pause) ]
                         yield Button.create
-                                  [ Button.background (Bitmap.Create stop |> ImageBrush)
+                                  [ Button.content Icons.stop
+                                    Button.classes [ "mediabtn" ]
                                     Button.onClick (fun _ -> dispatch Stop) ]
                     else
                         yield Button.create
-                                  [ Button.background (Bitmap.Create play |> ImageBrush)
+                                  [ Button.content Icons.play
+                                    Button.classes [ "mediabtn" ]
                                     Button.onClick (fun _ -> dispatch PlayInternal) ]
                     yield Button.create
-                              [ Button.background (Bitmap.Create next |> ImageBrush)
-                                Button.onClick (fun _ -> dispatch Next) ] ] ]
+                              [ Button.content Icons.next
+                                Button.classes [ "mediabtn" ]
+                                Button.onClick (fun _ -> dispatch Next) ]
+                    yield Button.create
+                              [ Button.content Icons.shuffle
+                                Button.classes [ "mediabtn" ]
+                                Button.onClick (fun _ -> dispatch Shuffle) ]
+                    match state.loopState with
+                    | Types.LoopState.All ->
+                        yield Button.create
+                                  [ Button.content Icons.repeat
+                                    Button.classes [ "mediabtn" ]
+                                    Button.onClick (fun _ -> dispatch (SetLoopState Types.LoopState.Single)) ]
+                    | Types.LoopState.Single ->
+                        yield Button.create
+                                  [ Button.content Icons.repeatOne
+                                    Button.classes [ "mediabtn" ]
+                                    Button.onClick (fun _ -> dispatch (SetLoopState Types.LoopState.Off)) ]
+                    | Types.LoopState.Off ->
+                        yield Button.create
+                                  [ Button.content Icons.repeatOff
+                                    Button.classes [ "mediabtn" ]
+                                    Button.onClick (fun _ -> dispatch (SetLoopState Types.LoopState.All)) ] ] ]
 
     let private progressBar (state: State) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.verticalAlignment VerticalAlignment.Bottom
-              StackPanel.horizontalAlignment HorizontalAlignment.Stretch
+              StackPanel.horizontalAlignment HorizontalAlignment.Center
               StackPanel.orientation Orientation.Horizontal
               StackPanel.dock Dock.Top
-              StackPanel.width 420.0
               StackPanel.children
                   [ Slider.create
                       [ Slider.minimum 0.0
                         Slider.maximum 100.0
+                        Slider.width 428.0
+                        Slider.horizontalAlignment HorizontalAlignment.Center
                         Slider.value (state.sliderPos |> double)
                         Slider.onValueChanged (fun value -> dispatch (Seek value)) ] ] ]
-
-    let private mediaMenu (state: State) (dispatch: Msg -> unit) =
-        Menu.create
-            [ Menu.classes [ "mediamenu" ]
-              Menu.dock Dock.Bottom
-              Menu.verticalAlignment VerticalAlignment.Bottom
-              Menu.horizontalAlignment HorizontalAlignment.Right
-              Menu.viewItems [ MenuItem.create [ MenuItem.header "Some Settings" ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
         DockPanel.create
