@@ -122,10 +122,11 @@ module Playlist =
                   | _ -> ())
               StackPanel.children [ TextBlock.create [ TextBlock.text song.name ] ] ]
 
-    let private songRecordList (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
+    let private songRecordList (selectedIndex: int) (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
         ListBox.create
             [ ListBox.dataItems songs
               ListBox.maxHeight 420.0
+              ListBox.selectedIndex selectedIndex
               ListBox.itemTemplate (DataTemplateView<Types.SongRecord>.create(fun item -> songTemplate item dispatch)) ]
 
     let private emptySongList (state: State) (dispatch: Msg -> unit) =
@@ -138,7 +139,7 @@ module Playlist =
         | Some songs ->
             match songs |> List.isEmpty with
             | true -> emptySongList state dispatch :> IView
-            | false -> songRecordList songs dispatch :> IView
+            | false -> songRecordList state.currentIndex songs dispatch :> IView
         | None -> emptySongList state dispatch :> IView
 
     let view (state: State) (dispatch: Msg -> unit) =
