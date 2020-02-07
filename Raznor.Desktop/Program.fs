@@ -10,7 +10,7 @@ type App() =
     inherit Application()
 
     override this.Initialize() =
-        this.Styles.Load "avares://Citrus.Avalonia/Magma.xaml"
+        this.Styles.Load "avares://Citrus.Avalonia/Rust.xaml"
         this.Styles.Load "avares://Raznor.Desktop/Styles.xaml"
         Core.Initialize()
 
