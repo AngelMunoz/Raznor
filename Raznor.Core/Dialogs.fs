@@ -16,8 +16,7 @@ module Dialogs =
                     Collections.Generic.List
                         (seq {
                             "mp3"
-                            "wav"
-                            "mid" })
+                            "wav" })
                 filter.Name <- "Music"
                 seq { filter }
 
