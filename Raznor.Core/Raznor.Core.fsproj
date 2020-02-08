@@ -19,7 +19,6 @@
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.2.2" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.2.0" />
     <PackageReference Include="LibVLCSharp" Version="3.4.2" />
-    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.8.1" />
     <PackageReference Include="LiteDB" Version="4.1.4" />
     <PackageReference Include="LiteDB.FSharp" Version="2.14.0" />
   </ItemGroup>
