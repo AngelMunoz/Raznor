@@ -1,4 +1,4 @@
-namespace Raznor.Desktop
+namespace Raznor
 
 
 module Shell =
@@ -13,7 +13,6 @@ module Shell =
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.DSL
     open LibVLCSharp.Shared
-    open Raznor.Desktop
     open Raznor.Core
 
     type State =
@@ -152,13 +151,12 @@ module Shell =
                         MenuItem.viewItems
                             [ MenuItem.create
                                 [ MenuItem.header "Select Files"
-                                  MenuItem.icon
-                                      (Image.FromString "avares://Raznor.Desktop/Assets/Icons/file-multiple-dark.png")
+                                  MenuItem.icon (Image.FromString "avares://Raznor/Assets/Icons/file-multiple-dark.png")
                                   MenuItem.onClick (fun _ -> dispatch OpenFiles) ]
                               MenuItem.create
                                   [ MenuItem.header "Select Folder"
                                     MenuItem.icon
-                                        (Image.FromString "avares://Raznor.Desktop/Assets/Icons/folder-music-dark.png")
+                                        (Image.FromString "avares://Raznor/Assets/Icons/folder-music-dark.png")
                                     MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =

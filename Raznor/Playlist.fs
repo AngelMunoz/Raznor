@@ -1,4 +1,4 @@
-namespace Raznor.Desktop
+namespace Raznor
 
 module Playlist =
     open System

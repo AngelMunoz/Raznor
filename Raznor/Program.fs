@@ -1,9 +1,9 @@
-namespace Raznor.Desktop
+namespace Raznor
 
 open Avalonia
 open Avalonia.Controls.ApplicationLifetimes
 open Avalonia.FuncUI
-open Raznor.Desktop.Shell
+open Raznor.Shell
 open LibVLCSharp.Shared
 
 type App() =
@@ -11,7 +11,7 @@ type App() =
 
     override this.Initialize() =
         this.Styles.Load "avares://Citrus.Avalonia/Rust.xaml"
-        this.Styles.Load "avares://Raznor.Desktop/Styles.xaml"
+        this.Styles.Load "avares://Raznor/Styles.xaml"
         Core.Initialize()
 
     override this.OnFrameworkInitializationCompleted() =

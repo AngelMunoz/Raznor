@@ -22,6 +22,9 @@
         <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.2.0" />
         <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.8.1" />
     </ItemGroup>
+    <ItemGroup>
+        <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
+    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Raznor.Core\Raznor.Core.fsproj" />
