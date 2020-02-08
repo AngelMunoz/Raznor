@@ -83,7 +83,7 @@ module Player =
             [ StackPanel.verticalAlignment VerticalAlignment.Bottom
               StackPanel.horizontalAlignment HorizontalAlignment.Left
               StackPanel.orientation Orientation.Horizontal
-              StackPanel.dock Dock.Bottom
+              StackPanel.dock Dock.Top
               StackPanel.children
                   [ yield Button.create
                               [ Button.content Icons.previous
@@ -133,7 +133,7 @@ module Player =
             [ StackPanel.verticalAlignment VerticalAlignment.Bottom
               StackPanel.horizontalAlignment HorizontalAlignment.Center
               StackPanel.orientation Orientation.Horizontal
-              StackPanel.dock Dock.Top
+              StackPanel.dock Dock.Bottom
               StackPanel.children
                   [ Slider.create
                       [ Slider.minimum 0.0
