@@ -1,8 +1,10 @@
 namespace Raznor
 
+
 module Playlist =
     open System
     open Avalonia.Controls
+    open Avalonia.Controls.Primitives
     open Avalonia.Input
     open Avalonia.FuncUI.Components
     open Avalonia.FuncUI.DSL
@@ -125,7 +127,7 @@ module Playlist =
     let private songRecordList (selectedIndex: int) (songs: Types.SongRecord list) (dispatch: Msg -> unit) =
         ListBox.create
             [ ListBox.dataItems songs
-              ListBox.maxHeight 420.0
+              ListBox.maxHeight 596.0
               ListBox.selectedIndex selectedIndex
               ListBox.itemTemplate (DataTemplateView<Types.SongRecord>.create(fun item -> songTemplate item dispatch)) ]
 
@@ -149,4 +151,6 @@ module Playlist =
         StackPanel.create
             [ StackPanel.dock Dock.Top
               StackPanel.name "playlist"
+              StackPanel.verticalScrollBarVisibility ScrollBarVisibility.Auto
+              StackPanel.maxHeight 420.0
               StackPanel.children [ songList state dispatch ] ]
