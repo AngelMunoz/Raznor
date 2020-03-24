@@ -1,7 +1,6 @@
 namespace Raznor.Core
 
 module Songs =
-    open LiteDB
     open System
     open System.IO
     open Types
@@ -11,11 +10,10 @@ module Songs =
         |> Array.Parallel.map FileInfo
         |> Array.Parallel.map (fun info -> info.Name, info.FullName)
         |> Array.Parallel.map (fun (name, path) ->
-            { id = ObjectId.NewObjectId()
+            { id = Guid.NewGuid()
               name = name
               path = path
-              createdAt = DateTime.Now
-              belongsTo = null })
+              createdAt = DateTime.Now})
 
     let populateFromDirectory (path: string): Types.SongRecord array =
         match String.IsNullOrEmpty path with
@@ -26,8 +24,7 @@ module Songs =
             |> Array.filter (fun info -> info.Extension = ".mp3" || info.Extension = ".wav")
             |> Array.Parallel.map (fun info -> info.Name, info.FullName)
             |> Array.Parallel.map (fun (name, path) ->
-                { id = ObjectId.NewObjectId()
+                { id = Guid.NewGuid()
                   name = name
                   path = path
-                  createdAt = DateTime.Now
-                  belongsTo = null })
+                  createdAt = DateTime.Now })

@@ -1,5 +1,7 @@
 namespace Raznor
 
+open Avalonia.Media.Imaging
+
 
 module Shell =
     open System
@@ -177,6 +179,7 @@ module Shell =
             base.Height <- 600.0
             base.MinWidth <- 526.0
             base.MinHeight <- 526.0
+            base.Icon <- new WindowIcon(Bitmap.Create "avares://Raznor/PEZMUSIC.png")
 
             //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
             //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true

@@ -32,7 +32,7 @@ module Playlist =
           loopState = Types.LoopState.Off }
 
     let private shuffle (org: _ list) =
-        let rng = new Random()
+        let rng = Random()
         let arr = Array.copy (org |> List.toArray)
         let max = (arr.Length - 1)
 
@@ -132,6 +132,9 @@ module Playlist =
     let private emptySongList (state: State) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.spacing 8.0
+              StackPanel.onPointerPressed (fun args ->
+                  let point = args.GetPosition null
+                  printfn "%A" point)
               StackPanel.children [ TextBlock.create [ TextBlock.text "Nothing to play here :)" ] ] ]
 
     let private songList (state: State) (dispatch: Msg -> unit) =
@@ -145,4 +148,5 @@ module Playlist =
     let view (state: State) (dispatch: Msg -> unit) =
         StackPanel.create
             [ StackPanel.dock Dock.Top
+              StackPanel.name "playlist"
               StackPanel.children [ songList state dispatch ] ]

@@ -2,14 +2,11 @@ namespace Raznor.Core
 
 module Types =
     open System
-    open LiteDB
 
     type SongRecord =
-        { [<BsonId(true)>]
-          id: ObjectId
+        { id: Guid
           name: string
           path: string
-          belongsTo: ObjectId
           createdAt: DateTime }
 
     type LoopState =

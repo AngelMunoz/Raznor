@@ -3,6 +3,11 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <Authors>Angel D. Munoz</Authors>
+        <Company>Tunaxor Apps.</Company>
+        <Product>Raznor Music</Product>
+        <Description>The most simplistic music player you will ever find :) pick a song/folder and just hit play</Description>
+        <Copyright>Tunaxor Apps.</Copyright>
     </PropertyGroup>
 
     <ItemGroup>
@@ -11,8 +16,11 @@
         <Compile Include="Shell.fs" />
         <Compile Include="Program.fs" />
         <AvaloniaResource Include="**\*.xaml" />
+        <AvaloniaResource Include="PEZMUSIC.png" />
         <AvaloniaResource Include="Assets\Icons\**" />
     </ItemGroup>
+
+    <ItemGroup />
     
     <ItemGroup>
         <PackageReference Include="Citrus.Avalonia" Version="1.2.2" />
