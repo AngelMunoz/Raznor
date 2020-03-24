@@ -20,6 +20,8 @@ module Shell =
     type State =
         { window: HostWindow
           title: string
+          discoverer: RendererDiscoverer
+          searching: bool
           playerState: Player.State
           playlistState: Playlist.State }
 
@@ -31,6 +33,7 @@ module Shell =
         | OpenFolder
         | AfterSelectFolder of string
         | AfterSelectFiles of string array
+        | ToggleFindRenderer
         (* Handle Media Player Events *)
         | Playing
         | Paused
@@ -39,6 +42,8 @@ module Shell =
         | TimeChanged of int64
         | ChapterChanged of int
         | LengthChanged of int64
+        | AddRenderer of RendererItem
+        | RemoveRenderer of RendererItem
 
     module Subs =
         let playing (player: MediaPlayer) =
@@ -71,10 +76,18 @@ module Shell =
                 player.LengthChanged.Subscribe(fun args -> dispatch (LengthChanged args.Length)) |> ignore
             Cmd.ofSub sub
 
+        let rendererUpdate (discoverer: RendererDiscoverer) =
+            let sub dispatch =
+                discoverer.ItemAdded.Subscribe(fun args -> dispatch (AddRenderer args.RendererItem)) |> ignore
+                discoverer.ItemDeleted.Subscribe(fun args -> dispatch (RemoveRenderer args.RendererItem)) |> ignore
+            Cmd.ofSub sub
 
-    let init (window: HostWindow) (player: MediaPlayer) =
+
+    let init (window: HostWindow) (player: MediaPlayer) (discoverer: RendererDiscoverer) =
         { window = window
           title = "Raznor F# :)"
+          discoverer = discoverer
+          searching = false
           playerState = Player.init player
           playlistState = Playlist.init }
 
@@ -132,6 +145,9 @@ module Shell =
             let songs = Songs.populateSongs paths |> Array.toList
 
             state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
+        | ToggleFindRenderer ->
+            if state.searching then state.discoverer.Stop() else state.discoverer.Start() |> ignore
+            { state with searching = not state.searching }, Cmd.none
         (* The follwing messages are fired from the player's subscriptions
            I feel these are can help to handle updates accross the whole application
            There are a lot more of events the Player Emits, but for the moment
@@ -143,6 +159,9 @@ module Shell =
         | TimeChanged time -> state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.SetPos time))
         | ChapterChanged chapter -> state, Cmd.none
         | LengthChanged length -> state, Cmd.none
+        | AddRenderer rendererItem -> state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.AddRenderer rendererItem))
+        | RemoveRenderer rendererItem ->
+            state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.RemoveRenderer rendererItem))
 
     let menuBar state dispatch =
         Menu.create
@@ -159,7 +178,10 @@ module Shell =
                                   [ MenuItem.header "Select Folder"
                                     MenuItem.icon
                                         (Image.FromString "avares://Raznor/Assets/Icons/folder-music-dark.png")
-                                    MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ] ] ]
+                                    MenuItem.onClick (fun _ -> dispatch OpenFolder) ] ] ]
+                    MenuItem.create
+                        [ MenuItem.header (sprintf "%s Chromecast" (if state.searching then "Disable" else "Enable"))
+                          MenuItem.onClick (fun _ -> dispatch ToggleFindRenderer) ] ] ]
 
     let view (state: State) (dispatch: Msg -> unit) =
         DockPanel.create
@@ -177,21 +199,22 @@ module Shell =
             base.Title <- "Raznor App"
             base.Width <- 800.0
             base.Height <- 600.0
-            base.MinWidth <- 526.0
-            base.MinHeight <- 526.0
-            base.Icon <- new WindowIcon(Bitmap.Create "avares://Raznor/PEZMUSIC.png")
+            base.MinWidth <- 617.0
+            base.MinHeight <- 624.0
+            base.Icon <- WindowIcon(Bitmap.Create "avares://Raznor/PEZMUSIC.png")
 
             //this.VisualRoot.VisualRoot.Renderer.DrawFps <- true
             //this.VisualRoot.VisualRoot.Renderer.DrawDirtyRects <- true
             let player = PlayerLib.getEmptyPlayer
-            let programInit (window, player) = init window player, Cmd.none
+            let discoverer = PlayerLib.getDiscoverer
+            let programInit (window, player, discoverer) = init window player discoverer, Cmd.none
 
             this.AttachDevTools(KeyGesture(Key.F12))
 
             let syncDispatch (dispatch: Dispatch<'msg>): Dispatch<'msg> =
                 match Dispatcher.UIThread.CheckAccess() with
                 | true -> fun msg -> Dispatcher.UIThread.Post(fun () -> dispatch msg)
-                | false -> fun msg -> dispatch msg
+                | false -> dispatch
 
             Program.mkProgram programInit update view
             |> Program.withHost this
@@ -203,5 +226,6 @@ module Shell =
             |> Program.withSubscription (fun _ -> Subs.timechanged player)
             |> Program.withSubscription (fun _ -> Subs.lengthchanged player)
             |> Program.withSubscription (fun _ -> Subs.chapterchanged player)
+            |> Program.withSubscription (fun _ -> Subs.rendererUpdate discoverer)
             |> Program.withConsoleTrace
-            |> Program.runWith (this, player)
+            |> Program.runWith (this, player, discoverer)

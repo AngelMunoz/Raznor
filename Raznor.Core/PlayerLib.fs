@@ -10,3 +10,8 @@ module PlayerLib =
     let getEmptyPlayer =
         use libvlc = new LibVLC()
         new MediaPlayer(libvlc)
+
+    let getDiscoverer =
+        let libvlc = new LibVLC()
+        let description = libvlc.RendererList |> Array.head
+        new RendererDiscoverer(libvlc, description.Name)
