@@ -1,15 +1,15 @@
 namespace Raznor.Core
 
 module Types =
-    open System
+  open System
 
-    type SongRecord =
-        { id: Guid
-          name: string
-          path: string
-          createdAt: DateTime }
+  type SongRecord =
+    { id : Guid
+      name : string
+      path : string
+      createdAt : DateTime }
 
-    type LoopState =
-        | Off
-        | All
-        | Single
+  type LoopState =
+    | Off
+    | All
+    | Single
