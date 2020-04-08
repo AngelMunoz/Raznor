@@ -161,6 +161,7 @@ module Player =
                   Button.onClick (fun _ -> dispatch ShowRenderers) ] ] ]
 
   let private progressBar (state : State) (dispatch : Msg -> unit) =
+    let dispatchSeek = (dispatch << Seek)
     StackPanel.create
       [ StackPanel.verticalAlignment VerticalAlignment.Bottom
         StackPanel.horizontalAlignment HorizontalAlignment.Center
@@ -173,7 +174,7 @@ module Player =
                 Slider.width 428.0
                 Slider.horizontalAlignment HorizontalAlignment.Center
                 Slider.value (state.sliderPos |> double)
-                Slider.onValueChanged (fun value -> dispatch (Seek value)) ] ] ]
+                Slider.onValueChanged dispatchSeek ] ] ]
 
   let private rendererList (state : State) (dispatch : Msg -> unit) =
     StackPanel.create

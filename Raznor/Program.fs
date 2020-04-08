@@ -9,12 +9,12 @@ open LibVLCSharp.Shared
 type App() =
   inherit Application()
 
-  member this.Initialize() =
+  override this.Initialize() =
     this.Styles.Load "avares://Citrus.Avalonia/Rust.xaml"
     this.Styles.Load "avares://Raznor/Styles.xaml"
     Core.Initialize()
 
-  member this.OnFrameworkInitializationCompleted() =
+  override this.OnFrameworkInitializationCompleted() =
     match this.ApplicationLifetime with
     | :? IClassicDesktopStyleApplicationLifetime as desktopLifetime ->
         desktopLifetime.MainWindow <- ShellWindow()
@@ -23,5 +23,7 @@ type App() =
 module Program =
   [<EntryPoint>]
   let main (args : string []) =
-    AppBuilder.Configure<App>().UsePlatformDetect().UseSkia()
+    AppBuilder.Configure<App>()
+      .UsePlatformDetect()
+      .UseSkia()
       .StartWithClassicDesktopLifetime(args)
