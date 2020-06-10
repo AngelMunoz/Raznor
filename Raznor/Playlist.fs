@@ -43,17 +43,20 @@ module Playlist =
       arr.[pos] <- arr.[i]
       arr.[i] <- tmp
       arr
+
     [| 0 .. max |]
     |> Array.fold randomSwap arr
     |> Array.toList
 
-  let private tryFindSong (songlist : Types.SongRecord list option)
-      (song : Types.SongRecord) =
+  let private tryFindSong
+      (songlist : Types.SongRecord list option)
+      (song : Types.SongRecord)
+    =
     match songlist with
     | Some songlist ->
         match songlist
-              |> List.tryFindIndex
-                   (fun (sng : Types.SongRecord) -> sng.id = song.id) with
+              |> List.tryFindIndex (fun (sng : Types.SongRecord) ->
+                   sng.id = song.id) with
         | Some index -> Some index
         | None -> None
     | None -> None
@@ -67,7 +70,8 @@ module Playlist =
         let index = tryFindSong state.songList song
         match index with
         | Some index ->
-            { state with currentIndex = index }, Cmd.none,
+            { state with currentIndex = index },
+            Cmd.none,
             Some(ExternalMsg.PlaySong(index, song))
         | None -> state, Cmd.none, None
     | GetAny ->
@@ -87,14 +91,17 @@ module Playlist =
               | Types.LoopState.Off -> state, Cmd.none, None
               | Types.LoopState.All ->
                   { state with currentIndex = 0 },
-                  Cmd.ofMsg (PlaySong songs.Head), None
+                  Cmd.ofMsg (PlaySong songs.Head),
+                  None
               | Types.LoopState.Single ->
-                  state, Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))),
+                  state,
+                  Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))),
                   None
             else
               match state.loopState with
               | Types.LoopState.Single ->
-                  state, Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))),
+                  state,
+                  Cmd.ofMsg (PlaySong(songs.Item(state.currentIndex))),
                   None
               | _ ->
                   let song = songs.Item(state.currentIndex + 1)
@@ -117,7 +124,9 @@ module Playlist =
             let shuffled = shuffle songs
             { state with
                 songList = Some shuffled
-                currentIndex = 0 }, Cmd.none, None
+                currentIndex = 0 },
+            Cmd.none,
+            None
         | None -> state, Cmd.none, None
 
   let private songTemplate (song : Types.SongRecord) (dispatch : Msg -> unit) =
@@ -131,8 +140,11 @@ module Playlist =
         StackPanel.children [ TextBlock.create [ TextBlock.text song.name ] ] ]
 
   /// eventually add other shortcuts to re-arrange songs or something alike
-  let private songRecordList (selectedIndex : int)
-      (songs : Types.SongRecord list) (dispatch : Msg -> unit) =
+  let private songRecordList
+      (selectedIndex : int)
+      (songs : Types.SongRecord list)
+      (dispatch : Msg -> unit)
+    =
     ListBox.create
       [ ListBox.dataItems songs
         ListBox.maxHeight 596.0

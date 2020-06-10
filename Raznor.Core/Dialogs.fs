@@ -16,9 +16,11 @@ module Dialogs =
             Collections.Generic.List
               (seq {
                 "mp3"
-                "wav" })
+                "wav"
+               })
           filter.Name <- "Music"
           seq { filter }
+
     dialog.AllowMultiple <- true
     dialog.Directory <-
       Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)

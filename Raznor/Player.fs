@@ -60,14 +60,19 @@ module Player =
         state.player.Play media |> ignore
         state, Cmd.ofMsg (SetLength state.player.Length), None
     | Seek position ->
-        let time = (position |> int64) * state.player.Length / 100L
+        let time =
+          (position |> int64) * state.player.Length / 100L
+
         state, Cmd.none, None
     | SetLength length -> { state with length = length }, Cmd.none, None
     | SetPos position ->
-        let pos = (position * 100L / state.player.Length) |> int
+        let pos =
+          (position * 100L / state.player.Length) |> int
+
         { state with sliderPos = pos }, Cmd.none, None
     | SetLoopState loopState ->
-        { state with loopState = loopState }, Cmd.none,
+        { state with loopState = loopState },
+        Cmd.none,
         Some(ExternalMsg.SetLoopState loopState)
     | Shuffle -> state, Cmd.none, Some ExternalMsg.Shuffle
     | Previous ->
@@ -94,6 +99,7 @@ module Player =
         let renderer =
           state.rendererItems
           |> Seq.tryFind (fun renderer -> renderer.Name = rendererName)
+
         match renderer with
         | Some renderer -> state.player.SetRenderer renderer |> ignore
         | None -> printfn "Renderer Not Found" |> ignore
@@ -140,21 +146,22 @@ module Player =
                 Button.create
                   [ Button.content Icons.repeat
                     Button.classes [ "mediabtn" ]
-                    Button.onClick
-                      (fun _ -> dispatch (SetLoopState Types.LoopState.Single)) ]
+                    Button.onClick (fun _ ->
+                      dispatch (SetLoopState Types.LoopState.Single)) ]
             | Types.LoopState.Single ->
                 Button.create
                   [ Button.content Icons.repeatOne
                     Button.classes [ "mediabtn" ]
-                    Button.onClick
-                      (fun _ -> dispatch (SetLoopState Types.LoopState.Off)) ]
+                    Button.onClick (fun _ ->
+                      dispatch (SetLoopState Types.LoopState.Off)) ]
             | Types.LoopState.Off ->
                 Button.create
                   [ Button.content Icons.repeatOff
                     Button.classes [ "mediabtn" ]
-                    Button.onClick
-                      (fun _ -> dispatch (SetLoopState Types.LoopState.All)) ]
-            if state.rendererItems.Count > 0 && not (state.showRenderers) then
+                    Button.onClick (fun _ ->
+                      dispatch (SetLoopState Types.LoopState.All)) ]
+            if state.rendererItems.Count > 0
+               && not (state.showRenderers) then
               Button.create
                 [ Button.content Icons.cast
                   Button.classes [ "mediabtn" ]
@@ -193,8 +200,7 @@ module Player =
               Button.create
                 [ Button.classes [ "rendereritem" ]
                   Button.content (renderer.Name)
-                  Button.onClick
-                    (fun _ -> dispatch (StartCasting renderer.Name)) ] ] ]
+                  Button.onClick (fun _ -> dispatch (StartCasting renderer.Name)) ] ] ]
 
   let view (state : State) (dispatch : Msg -> unit) =
     DockPanel.create

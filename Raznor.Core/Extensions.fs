@@ -1,11 +1,10 @@
 namespace Raznor.Core
 
-open Avalonia.Controls
-
 [<AutoOpen>]
 module Extensions =
   open System
   open Avalonia
+  open Avalonia.Controls
   open Avalonia.Media.Imaging
   open Avalonia.Platform
 
@@ -16,10 +15,13 @@ module Extensions =
           Uri(s, UriKind.Relative)
         else
           Uri(s, UriKind.RelativeOrAbsolute)
+
       if uri.IsAbsoluteUri && uri.IsFile then
         new Bitmap(uri.LocalPath)
       else
-        let assets = AvaloniaLocator.Current.GetService<IAssetLoader>()
+        let assets =
+          AvaloniaLocator.Current.GetService<IAssetLoader>()
+
         new Bitmap(assets.Open(uri))
 
   type Image with

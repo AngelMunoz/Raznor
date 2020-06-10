@@ -1,7 +1,5 @@
 namespace Raznor
 
-open Avalonia.Media.Imaging
-
 module Shell =
   open System
   open Elmish
@@ -9,7 +7,7 @@ module Shell =
   open Avalonia.Controls
   open Avalonia.Input
   open Avalonia.Layout
-  open Avalonia.Threading
+  open Avalonia.Media.Imaging
   open Avalonia.FuncUI.Elmish
   open Avalonia.FuncUI.Components.Hosts
   open Avalonia.FuncUI.DSL
@@ -41,25 +39,35 @@ module Shell =
   module Subs =
     let ended (player : MediaPlayer) =
       let sub dispatch =
-        player.EndReached.Subscribe(fun _ -> dispatch Ended) |> ignore
+        player.EndReached.Subscribe(fun _ -> dispatch Ended)
+        |> ignore
+
       Cmd.ofSub sub
 
     let timechanged (player : MediaPlayer) =
       let sub dispatch =
-        player.TimeChanged.Subscribe
-          (fun args -> dispatch (TimeChanged args.Time)) |> ignore
+        player.TimeChanged.Subscribe(fun args ->
+          dispatch (TimeChanged args.Time))
+        |> ignore
+
       Cmd.ofSub sub
 
     let rendererUpdate (discoverer : RendererDiscoverer) =
       let sub dispatch =
-        discoverer.ItemAdded.Subscribe
-          (fun args -> dispatch (AddRenderer args.RendererItem)) |> ignore
-        discoverer.ItemDeleted.Subscribe
-          (fun args -> dispatch (RemoveRenderer args.RendererItem)) |> ignore
+        discoverer.ItemAdded.Subscribe(fun args ->
+          dispatch (AddRenderer args.RendererItem))
+        |> ignore
+        discoverer.ItemDeleted.Subscribe(fun args ->
+          dispatch (RemoveRenderer args.RendererItem))
+        |> ignore
+
       Cmd.ofSub sub
 
-  let init (window : HostWindow) (player : MediaPlayer)
-      (discoverer : RendererDiscoverer) =
+  let init
+      (window : HostWindow)
+      (player : MediaPlayer)
+      (discoverer : RendererDiscoverer)
+    =
     { window = window
       title = "Raznor F# :)"
       discoverer = discoverer
@@ -72,7 +80,7 @@ module Shell =
     | None -> Cmd.none
     | Some msg ->
         match msg with
-        | Playlist.ExternalMsg.PlaySong(int, song) ->
+        | Playlist.ExternalMsg.PlaySong (int, song) ->
             Cmd.batch
               [ Cmd.ofMsg (PlayerMsg(Player.Msg.Play song))
                 Cmd.ofMsg (SetTitle song.name) ]
@@ -96,13 +104,17 @@ module Shell =
   let update (msg : Msg) (state : State) =
     match msg with
     | PlayerMsg playermsg ->
-        let s, cmd, external = Player.update playermsg state.playerState
+        let s, cmd, external =
+          Player.update playermsg state.playerState
+
         let handled = handlePlayerExternal external
         let mapped = Cmd.map PlayerMsg cmd
         let batch = Cmd.batch [ mapped; handled ]
         { state with playerState = s }, batch
     | PlaylistMsg playlistmsg ->
-        let s, cmd, external = Playlist.update playlistmsg state.playlistState
+        let s, cmd, external =
+          Playlist.update playlistmsg state.playlistState
+
         let mapped = Cmd.map PlaylistMsg cmd
         let handled = handlePlaylistExternal external
         let batch = Cmd.batch [ mapped; handled ]
@@ -112,24 +124,36 @@ module Shell =
         { state with title = title }, Cmd.none
     | OpenFiles ->
         let dialog = Dialogs.getMusicFilesDialog None
-        let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
+
+        let showDialog window =
+          dialog.ShowAsync(window) |> Async.AwaitTask
+
         state, Cmd.OfAsync.perform showDialog state.window AfterSelectFiles
     | OpenFolder ->
         let dialog = Dialogs.getFolderDialog
-        let showDialog window = dialog.ShowAsync(window) |> Async.AwaitTask
+
+        let showDialog window =
+          dialog.ShowAsync(window) |> Async.AwaitTask
+
         state, Cmd.OfAsync.perform showDialog state.window AfterSelectFolder
     | AfterSelectFolder path ->
-        let songs = Songs.populateFromDirectory path |> Array.toList
+        let songs =
+          Songs.populateFromDirectory path |> Array.toList
+
         state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
     | AfterSelectFiles paths ->
-        let songs = Songs.populateSongs paths |> Array.toList
+        let songs =
+          Songs.populateSongs paths |> Array.toList
+
         state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.AddFiles songs))
     | ToggleFindRenderer ->
         if state.searching then
           state.discoverer.Stop()
         else
           state.discoverer.Start() |> ignore
-        { state with searching = not state.searching }, Cmd.none
+        { state with
+            searching = not state.searching },
+        Cmd.none
     | Ended -> state, Cmd.map PlaylistMsg (Cmd.ofMsg (Playlist.Msg.GetNext))
     | TimeChanged time ->
         state, Cmd.map PlayerMsg (Cmd.ofMsg (Player.Msg.SetPos time))
@@ -177,6 +201,7 @@ module Shell =
 
   type ShellWindow() as this =
     inherit HostWindow()
+
     do
       base.Title <- "Raznor App"
       base.Width <- 800.0
@@ -186,16 +211,13 @@ module Shell =
       base.Icon <- WindowIcon(Bitmap.Create "avares://Raznor/PEZMUSIC.png")
       let player = PlayerLib.getEmptyPlayer
       let discoverer = PlayerLib.getDiscoverer
+
       let programInit (window, player, discoverer) =
         init window player discoverer, Cmd.none
+
       this.AttachDevTools(KeyGesture(Key.F12))
-      let syncDispatch (dispatch : Dispatch<'msg>) : Dispatch<'msg> =
-        match Dispatcher.UIThread.CheckAccess() with
-        | true -> fun msg -> Dispatcher.UIThread.Post(fun () -> dispatch msg)
-        | false -> dispatch
       Program.mkProgram programInit update view
       |> Program.withHost this
-      |> Program.withSyncDispatch syncDispatch
       |> Program.withSubscription (fun _ -> Subs.ended player)
       |> Program.withSubscription (fun _ -> Subs.timechanged player)
       |> Program.withSubscription (fun _ -> Subs.rendererUpdate discoverer)
