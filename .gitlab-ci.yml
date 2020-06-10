@@ -17,4 +17,4 @@ release:
     paths:
       - publish/linux
   script:
-    - dotnet publish -c Release -r linux-x64 -o ../publish/linux --self-contained true -p:PublishSingleFile=true Raznor/Raznor.fsproj
+    - dotnet publish -c Release -r linux-x64 -o ./publish/linux --self-contained true -p:PublishSingleFile=true Raznor/Raznor.fsproj
