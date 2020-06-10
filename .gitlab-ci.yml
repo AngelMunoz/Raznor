@@ -11,7 +11,7 @@ build:
     - dotnet build
 
 release-windows:
-  stage: release
+  stage: release-windows
   only:
     - master
   artifacts:
@@ -19,8 +19,9 @@ release-windows:
       - publish/windows
   script:
     - dotnet publish -c Release -r win10-x64 -o ../publish/windows Raznor/Raznor.fsproj --self-contained true
+
 release-linux:
-  stage: release
+  stage: release-windows
   only:
     - master
   artifacts:
