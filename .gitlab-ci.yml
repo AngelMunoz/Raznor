@@ -1,20 +1,22 @@
-image : mcr.microsoft.com/dotnet/sdk:5.0-alpine
+image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
 
 stages:
-  - build
-  - release
+    - build
+    - release
 
 build:
-  stage: build
-  script:
-    - dotnet build 
+    stage: build
+    script:
+        - dotnet build
 
 release:
-  stage: release
-  only:
-    - master
-  artifacts:
-    paths:
-      - publish/linux
-  script:
-    - dotnet publish -c Release -r linux-x64 -o ./publish/linux --self-contained true -p:PublishSingleFile=true Raznor/Raznor.fsproj
+    stage: release
+    only:
+        - master
+    artifacts:
+        paths:
+            - publish/linux
+            - publish/windows
+    script:
+        - dotnet publish -c Release -r linux-x64 -o ./publish/linux --self-contained true -p:PublishSingleFile=true Raznor.Components/Raznor.Components.fsproj
+        - dotnet publish -c Release -r win10-x64 -o ./publish/windows --self-contained true -p:PublishSingleFile=true Raznor.Components/Raznor.Components.fsproj
