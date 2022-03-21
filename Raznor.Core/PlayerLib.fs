@@ -1,17 +1,15 @@
 namespace Raznor.Core
 
 module PlayerLib =
-  open LibVLCSharp.Shared
+    open LibVLCSharp.Shared
 
-  let getMediaFromlocal (source : string) =
-    use libvlc = new LibVLC()
-    new Media(libvlc, source, FromType.FromPath)
+    let private libvlc = lazy (new LibVLC("--verbose=2"))
 
-  let getEmptyPlayer =
-    use libvlc = new LibVLC()
-    new MediaPlayer(libvlc)
+    let getMediaFromlocal (source: string) =
+        new Media(libvlc.Value, source, FromType.FromPath)
 
-  let getDiscoverer =
-    let libvlc = new LibVLC()
-    let description = libvlc.RendererList |> Array.head
-    new RendererDiscoverer(libvlc, description.Name)
+    let GetPlayer = lazy (new MediaPlayer(libvlc.Value))
+
+    let getDiscoverer =
+        let description = libvlc.Value.RendererList |> Array.head
+        new RendererDiscoverer(libvlc.Value, description.Name)
