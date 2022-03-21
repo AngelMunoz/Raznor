@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Shell.fs" />
+    <Compile Include="Program.fs" />
+    <AvaloniaResource Include="**\*.xaml" />
+    <AvaloniaResource Include="PEZMUSIC.png" />
+    <AvaloniaResource Include="Assets\Icons\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.13" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="0.10.13" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.5.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.5.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Raznor.Core\Raznor.Core.fsproj" />
+  </ItemGroup>
+</Project>
