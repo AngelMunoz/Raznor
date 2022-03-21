@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <Authors>Angel D. Munoz</Authors>
         <Company>Tunaxor Apps.</Company>
         <Product>Raznor Music</Product>
@@ -21,14 +21,14 @@
     </ItemGroup>
 
     <ItemGroup />
-    
+
     <ItemGroup>
-        <PackageReference Include="Citrus.Avalonia" Version="1.2.6" />
-        <PackageReference Include="Avalonia.Desktop" Version="0.9.10" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.1" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
-        <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.10" />
+        <PackageReference Include="Avalonia.Desktop" Version="0.10.13" />
+        <PackageReference Include="Avalonia.Diagnostics" Version="0.10.13" />
+        <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.5.0" />
+        <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.5.0" />
+        <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.5.0" />
+        <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.16" />
     </ItemGroup>
     <ItemGroup>
         <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
